@@ -1,0 +1,31 @@
+{
+	"name": "codex-forge",
+	"version": "0.1.0",
+	"description": "Codex CLI software-engineering workflows, agent roles, hooks, and user-level configuration.",
+	"author": {
+		"name": "Codex Forge"
+	},
+	"keywords": [
+		"codex",
+		"software-engineering",
+		"coding-agent",
+		"multi-agent",
+		"code-review",
+		"debugging"
+	],
+	"skills": "./skills/",
+	"mcpServers": "./.mcp.json",
+	"interface": {
+		"displayName": "Codex Forge",
+		"shortDescription": "Engineering workflows and guarded automation for Codex",
+		"longDescription": "Adds cost-aware agent routing, software-engineering skills, hook policy, CodeGraph integration, and an installer for Forge-owned Codex user configuration.",
+		"developerName": "Codex Forge",
+		"category": "Developer Tools",
+		"capabilities": ["Interactive", "Read", "Write"],
+		"defaultPrompt": [
+			"Implement this change with Codex Forge.",
+			"Debug this repository with Codex Forge.",
+			"Review this change with Codex Forge."
+		]
+	}
+}

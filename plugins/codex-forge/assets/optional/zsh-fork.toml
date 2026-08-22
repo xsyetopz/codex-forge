@@ -1,0 +1,3 @@
+[features]
+shell_zsh_fork = true
+unified_exec_zsh_fork = true

@@ -1,0 +1,9 @@
+{
+	"name": "forge-deliver",
+	"owner": "repository implementation",
+	"excludes": ["unknown diagnosis", "review-only work"],
+	"reference_paths": [
+		"references/index.md",
+		"references/implementation-workflows.md"
+	]
+}

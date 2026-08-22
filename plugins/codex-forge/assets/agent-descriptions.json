@@ -1,0 +1,11 @@
+{
+	"forge-direct": "Deterministic local work with an exact oracle.",
+	"forge-scout": "Read-only bounded repository reconnaissance.",
+	"forge-worker": "Bounded implementation from a settled contract.",
+	"forge-hard-worker": "Hard bounded implementation with a settled design and strong oracle.",
+	"forge-retriever": "Long-context retrieval and extraction specialist.",
+	"forge-architect": "Architecture and cross-system invariant analysis.",
+	"forge-debugger": "Root-cause debugging for ambiguous or cross-system failures.",
+	"forge-reviewer": "Independent semantic review of a candidate change.",
+	"forge-tail-reviewer": "Escalated review for demonstrated hard-tail reasoning."
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Forge Deliver"
+  short_description: "Implement, refactor, or migrate repository code"
+  default_prompt: "Use $forge-deliver to implement this bounded repository change."

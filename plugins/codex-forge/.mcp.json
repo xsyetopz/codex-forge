@@ -1,0 +1,9 @@
+{
+	"mcpServers": {
+		"codegraph": {
+			"cwd": ".",
+			"command": "python3",
+			"args": ["./scripts/codegraph.py", "serve", "--mcp"]
+		}
+	}
+}

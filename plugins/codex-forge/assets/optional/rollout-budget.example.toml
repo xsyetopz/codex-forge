@@ -1,0 +1,4 @@
+# Add `limit_tokens` only from an explicit user budget or a measured workload.
+# [features.rollout_budget]
+# enabled = true
+# limit_tokens = <explicit-or-measured-value>

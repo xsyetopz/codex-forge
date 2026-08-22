@@ -1,0 +1,9 @@
+{
+	"name": "forge-prompt-audit",
+	"owner": "agent instruction ownership",
+	"excludes": ["ordinary application code", "repository documentation"],
+	"reference_paths": [
+		"references/index.md",
+		"references/instruction-ownership.md"
+	]
+}
