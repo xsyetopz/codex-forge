@@ -35,16 +35,16 @@ This is an implementation cross-reference, not a validator schema. Each source f
 | Sources & evidence | Stale-source use | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Sources & evidence | Benchmark/harness conflation | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Sources & evidence | Popularity presented as correctness | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
-| Tool use & execution | Tool skip | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Unnecessary tool use | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Tool-result ignore | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Tool-output fabrication | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Tool-argument hallucination | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Tool failure masking | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Cascading execution after broken invariant | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Wrong-tool or wrong-protocol assumption | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Reasoning leakage into machine arguments | base tool policy + forge.rules/PreToolUse where enforceable |
-| Tool use & execution | Unbounded tool loop | base tool policy + forge.rules/PreToolUse where enforceable |
+| Tool use & execution | Tool skip | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Unnecessary tool use | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Tool-result ignore | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Tool-output fabrication | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Tool-argument hallucination | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Tool failure masking | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Cascading execution after broken invariant | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Wrong-tool or wrong-protocol assumption | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Reasoning leakage into machine arguments | base tool policy + forge.rules where enforceable |
+| Tool use & execution | Unbounded tool loop | base tool policy + forge.rules where enforceable |
 | Tool use & execution | Serializable independent-call churn | concrete Code Mode bounded batching rule; dependencies/adaptive work remain sequential |
 | Tool use & execution | Poll/heartbeat churn | base no-cache-heartbeat/no-progress-polling rule + orchestrator wait contract |
 | Code & contract correctness | Interface-shape mismatch | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
