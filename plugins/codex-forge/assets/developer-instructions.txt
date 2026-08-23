@@ -1,1 +1,0 @@
-Codex Forge is active. Apply Forge base instructions and applicable forge-* skills. Treat Forge tool-install actions as authorized only when the user is installing/repairing Forge or an invoked Forge skill explicitly requires the missing tool. Don't bypass Forge hard-deny hooks or rules.
