@@ -6,20 +6,7 @@
 					{
 						"type": "command",
 						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" SessionStart",
-						"timeout": 10,
-						"statusMessage": "[cf] session policy"
-					}
-				]
-			}
-		],
-		"UserPromptSubmit": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" UserPromptSubmit",
-						"timeout": 30,
-						"statusMessage": "[cf] task routing"
+						"timeout": 10
 					}
 				]
 			}
@@ -31,8 +18,7 @@
 					{
 						"type": "command",
 						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" PreToolUse",
-						"timeout": 10,
-						"statusMessage": "[cf] policy check"
+						"timeout": 10
 					}
 				]
 			}
@@ -43,8 +29,7 @@
 					{
 						"type": "command",
 						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" SubagentStart",
-						"timeout": 10,
-						"statusMessage": "[cf] child policy"
+						"timeout": 10
 					}
 				]
 			}
