@@ -1,8 +1,10 @@
-# Codex Forge hard-deny rules. Strictest matching rule wins.
-# These remain forbidden even when approval_policy=never.
+# Common local commands are allowed; stricter matching rules below still win.
+prefix_rule(pattern=[["pwd","ls","rg","fd","cat","head","tail","sed","awk","wc","sort","uniq","cut","tr","stat","file","realpath","dirname","basename","printf","echo","mkdir","cp","mv","touch"]], decision="allow", justification="[cf] Ordinary local inspection/edit support command.")
+prefix_rule(pattern=["git"], decision="allow", justification="[cf] Local Git operations are allowed unless a stricter rule below forbids them.")
+prefix_rule(pattern=[["cargo","rustc","go","python","python3","node","npm","pnpm","yarn","deno","bun","pytest","ruff","mypy","uv","cmake","make","ninja"]], decision="allow", justification="[cf] Ordinary local build/test/tool command.")
 
 prefix_rule(pattern=["rm"], decision="forbidden", justification="[cf] File deletion is disabled. Use a reversible edit or let the user delete explicitly.")
-prefix_rule(pattern=["rmdir"], decision="forbidden", justification="[cf] Directory deletion is disabled.")
+prefix_rule(pattern=["rmdir"], decision="allow", justification="[cf] Removing empty directories is safe local cleanup.")
 prefix_rule(pattern=["unlink"], decision="forbidden", justification="[cf] File deletion is disabled.")
 prefix_rule(pattern=["shred"], decision="forbidden", justification="[cf] Destructive overwrite is disabled.")
 prefix_rule(pattern=["truncate"], decision="forbidden", justification="[cf] Destructive truncation is disabled.")

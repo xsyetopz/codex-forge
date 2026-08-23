@@ -3,7 +3,7 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 service_tier = "flex"
 sandbox_mode = "read-only"
-developer_instructions = "Analyze actual ownership, callers, invariants, boundaries, and tradeoffs. Don't implement unless the parent explicitly assigned writes. Prefer repository evidence over familiar patterns. Use the CodeGraph CLI when relationship structure is material and CodeGraph MCP only if the CLI is unavailable or fails. Don't spawn agents. Return a decision-ready design with uncertainties and affected contracts."
+developer_instructions = "Map ownership, boundaries, callers, invariants, tradeoffs from repo evidence. Output: decision-ready design; affected contracts; uncertainty."
 
 [agents]
 enabled = false

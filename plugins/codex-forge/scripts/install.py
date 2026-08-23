@@ -16,7 +16,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from installer.agents import merge_agents, strip_managed_agents
 from installer.config import merge_config, strip_managed
 from installer.files import install_files, revert_files, uninstall_files
 
@@ -63,14 +62,6 @@ def original_config(current: str, prior_state: dict) -> str:
     return current
 
 
-def original_agents(current: str, prior_state: dict) -> str:
-    if prior_state and sha(current) == prior_state.get("agents_after_sha256"):
-        prior = Path(prior_state.get("backup", "")) / "AGENTS.md"
-        if prior.exists():
-            return prior.read_text()
-    return strip_managed_agents(current)
-
-
 def install(args: argparse.Namespace) -> int:
     home = codex_home()
     home.mkdir(parents=True, exist_ok=True)
@@ -79,9 +70,6 @@ def install(args: argparse.Namespace) -> int:
     state_path = home / "forge" / "install-state.json"
     prior_state = json.loads(state_path.read_text()) if state_path.exists() else {}
     old = original_config(current, prior_state)
-    agents_path = home / "AGENTS.md"
-    current_agents = agents_path.read_text() if agents_path.exists() else ""
-    old_agents = original_agents(current_agents, prior_state)
     try:
         if old.strip():
             tomllib.loads(old)
@@ -91,21 +79,15 @@ def install(args: argparse.Namespace) -> int:
     backup = next_backup(home)
     backup.mkdir(parents=True, exist_ok=False)
     (backup / "config.toml").write_text(old)
-    (backup / "AGENTS.md").write_text(old_agents)
     mappings = install_files(home, plugin_root(), backup, prior_state)
     new, created_tables = merge_config(old, home, plugin_root())
     config_path.write_text(new)
-    agents_section = (plugin_root() / "assets" / "global-agents.md").read_text()
-    new_agents = merge_agents(old_agents, agents_section)
-    agents_path.write_text(new_agents)
     state = {
         "version": VERSION,
         "installed_at": time.time(),
         "backup": str(backup),
         "config_before_sha256": sha(old),
         "config_after_sha256": sha(new),
-        "agents_before_sha256": sha(old_agents),
-        "agents_after_sha256": sha(new_agents),
         "files": [item["target"] for item in mappings],
         "file_mappings": mappings,
         "created_tables": created_tables,
@@ -136,11 +118,6 @@ def uninstall(_args: argparse.Namespace) -> int:
     backup = (
         Path(state.get("backup", "")) / "config.toml" if state.get("backup") else None
     )
-    agents_path = home / "AGENTS.md"
-    current_agents = agents_path.read_text() if agents_path.exists() else ""
-    agents_backup = (
-        Path(state.get("backup", "")) / "AGENTS.md" if state.get("backup") else None
-    )
     if (
         state
         and sha(current) == state.get("config_after_sha256")
@@ -158,19 +135,6 @@ def uninstall(_args: argparse.Namespace) -> int:
             print(
                 f"[cf] config changed since install; removed Forge-managed values. Original backup: {backup}"
             )
-    if (
-        state
-        and sha(current_agents) == state.get("agents_after_sha256")
-        and agents_backup
-        and agents_backup.exists()
-    ):
-        restored_agents = agents_backup.read_text()
-    else:
-        restored_agents = strip_managed_agents(current_agents)
-    if restored_agents:
-        agents_path.write_text(restored_agents.rstrip() + "\n")
-    else:
-        agents_path.unlink(missing_ok=True)
     uninstall_files(home, state)
     state_path.unlink(missing_ok=True)
     print("[cf] uninstalled user-level Forge configuration")
@@ -217,11 +181,6 @@ def doctor(_args: argparse.Namespace) -> int:
         ("config TOML", parsed),
         ("model instructions", (home / "forge" / "model-instructions.md").exists()),
         ("compact prompt", (home / "forge" / "compact-prompt.md").exists()),
-        (
-            "global AGENTS",
-            (home / "AGENTS.md").exists()
-            and "codex-forge:codegraph" in (home / "AGENTS.md").read_text(),
-        ),
         ("rules", (home / "rules" / "forge.rules").exists()),
         ("agent roles", len(list((home / "agents").glob("forge-*.toml"))) >= 9),
     ]

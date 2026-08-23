@@ -1,6 +1,6 @@
 # Observational evidence synthesis - 2026-08-22
 
-This document records why Forge 0.1.0 changed behavior. It is documentation only; it isn't injected into every Codex turn.
+This document records why Forge changed behavior. It is documentation only; it isn't injected into every Codex turn.
 
 ## Evidence classes
 
@@ -15,7 +15,7 @@ Upstream Codex 0.149.0 facts used here:
 
 ## Recurrent observations and Forge response
 
-| Observation | Evidence strength used here | Forge 0.1.0 response |
+| Observation | Evidence strength used here | Forge 0.1.0-alpha.1 response |
 | --- | --- | --- |
 | Sol can perform broader blind audits but can overthink simple defects | repeated user reports; consistent with existing scope/verification failure controls | narrow-first escalation; blind consequential audit stays Sol; no local defect → architecture escalation without evidence |
 | Luna performs better when given explicit observed/expected behavior, scope and oracle | repeated workflow reports | stronger child task packet; Luna only for bounded audit/implementation |

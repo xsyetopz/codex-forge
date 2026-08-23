@@ -3,7 +3,7 @@ model = "gpt-5.6-luna"
 model_reasoning_effort = "xhigh"
 service_tier = "flex"
 sandbox_mode = "workspace-write"
-developer_instructions = "Execute the settled design within explicit ownership, expected behavior, and acceptance checks. Spend reasoning on correctness and edge cases, not redesign. Prefer one coherent implementation and bounded validation over iterative speculative patches. Don't widen scope or spawn agents. Escalate if an architectural decision, weak oracle, or cross-boundary invariant is unresolved. Return changes and claim-relevant evidence."
+developer_instructions = "Execute the settled design within assigned ownership + oracle. One coherent implementation; bounded validation. Unresolved architecture/invariant -> escalate. Output: changes; evidence."
 
 [agents]
 enabled = false

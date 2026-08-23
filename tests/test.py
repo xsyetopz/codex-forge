@@ -45,7 +45,7 @@ def main():
     json.loads((P / "hooks.json").read_text())
     mcp = json.loads((P / ".mcp.json").read_text())
     json.loads((ROOT / ".agents" / "plugins" / "marketplace.json").read_text())
-    check(manifest.get("version") == "0.1.0", "plugin version")
+    check(manifest.get("version") == "0.1.0-alpha.1", "plugin version")
     check(manifest.get("mcpServers") == "./.mcp.json", "MCP manifest path")
     check(
         mcp.get("mcpServers", {}).get("codegraph")
@@ -57,20 +57,11 @@ def main():
         "CodeGraph MCP fallback configuration",
     )
     base = (P / "assets" / "model-instructions.md").read_text()
-    check(
-        "Promise.allSettled" in base and "Don't split an otherwise useful" in base,
-        "batching guidance missing",
-    )
-    check(
-        "Don't assume another thread, model, agent, or run is remembered" in base,
-        "continuity guard missing",
-    )
-    check(
-        "Don't poll, no-op, or heartbeat" in base, "poll/cache heartbeat guard missing"
-    )
-    check("Use its CLI by default" in base, "CodeGraph CLI-first policy missing")
-    check("last-resort fallback" in base, "CodeGraph MCP fallback policy missing")
-    check("codegraph status . --json" in base, "CodeGraph readiness command missing")
+    check("Promise.allSettled" in base, "batching guidance missing")
+    check("Missing required fact: discover it" in base, "clarification guard missing")
+    check("Stay silent during routine" in base, "narration guard missing")
+    check("codegraph_explore" in base, "CodeGraph policy missing")
+    check("Skills load natively" in base, "native skill-loading rule missing")
     tools_text = (P / "scripts" / "tools.py").read_text()
     check(
         "@colbymchenry/codegraph" in tools_text, "CodeGraph package installer missing"
@@ -108,9 +99,6 @@ def main():
             )
     finally:
         launcher.shutil.which = original_which
-    global_agents = (P / "assets" / "global-agents.md").read_text()
-    check(len(global_agents.splitlines()) <= 20, "global AGENTS block exceeds 20 lines")
-    check("## CodeGraph" in global_agents, "global CodeGraph guidance missing")
     review = (P / "skills" / "forge-review" / "SKILL.md").read_text()
     check("inspect the full stated scope" in review, "audit continuation guard missing")
     check(not any(ROOT.rglob("*catalog*")), "catalog must not be distributed")
@@ -151,15 +139,20 @@ def main():
         check(d.get("agents", {}).get("max_depth") == 1, "child recursion not capped")
     r = (P / "assets" / "forge.rules").read_text()
     check('git","push' in r and 'decision="forbidden"' in r, "git push not forbidden")
-    # Hook dangerous command.
+    # Hook routing is advisory; hard command policy lives in forge.rules.
+    _rc, out, _err = hook("SessionStart", {})
+    check(
+        "Code discovery:" in out and "codegraph_explore" in out,
+        "session CodeGraph hint missing",
+    )
     _rc, out, _err = hook(
         "PreToolUse",
-        {
-            "tool_name": "shell",
-            "tool_input": {"command": ["git", "push", "origin", "main"]},
-        },
+        {"tool_name": "shell", "tool_input": {"command": ["grep", "-R", "Thing", "."]}},
     )
-    check('"permissionDecision": "deny"' in out, "push hook not denied")
+    check(
+        "Use bounded `rg`" in out and "permissionDecision" not in out,
+        "shell routing must be advisory",
+    )
     _rc, out, _err = hook(
         "PreToolUse", {"tool_name": "spawn_agent", "tool_input": {"message": "x"}}
     )
@@ -177,11 +170,6 @@ def main():
         },
     )
     check(out == "", "valid cheap spawn unexpectedly denied")
-    _rc, out, _err = hook(
-        "UserPromptSubmit", {"prompt": "Show callers and the cross-module call graph"}
-    )
-    check("use the CodeGraph CLI first" in out, "hook did not route CLI first")
-    check("MCP tools only if CLI" in out, "hook did not keep MCP as fallback")
     # Installer isolated CODEX_HOME.
     with tempfile.TemporaryDirectory() as td:
         home = Path(td) / "codex"
@@ -220,12 +208,9 @@ def main():
         check("[profiles." not in txt, "named profile created")
         check((home / "agents" / "forge-worker.toml").exists(), "agents not installed")
         check((home / "rules" / "forge.rules").exists(), "rules missing")
-        installed_agents = (home / "AGENTS.md").read_text()
-        check("# Existing user instructions" in installed_agents, "user AGENTS lost")
-        check("codex-forge:codegraph" in installed_agents, "Forge AGENTS block missing")
         check(
-            len(installed_agents.splitlines()) <= 20,
-            "generated AGENTS exceeds 20 lines",
+            (home / "AGENTS.md").read_text() == "# Existing user instructions\n",
+            "Forge modified AGENTS.md",
         )
         state = json.loads((home / "forge" / "install-state.json").read_text())
         mappings = state.get("file_mappings", [])
@@ -271,17 +256,17 @@ def main():
         env = os.environ.copy()
         env["CODEX_HOME"] = str(home)
         p = run(
-            [sys.executable, str(ROOT / "install.py"), "install", "--no-tools"],
-            env=env,
+            [sys.executable, str(ROOT / "install.py"), "install", "--no-tools"], env=env
         )
         check(p.returncode == 0, p.stdout)
-        agents_path.write_text(agents_path.read_text() + "\n# Later user edit\n")
+        check(agents_path.read_text() == "# Original\n", "install modified AGENTS.md")
+        agents_path.write_text("# Original\n# Later user edit\n")
         p = run([sys.executable, str(ROOT / "install.py"), "uninstall"], env=env)
         check(p.returncode == 0, p.stdout)
-        remaining_agents = agents_path.read_text()
-        check("codex-forge:codegraph" not in remaining_agents, "AGENTS block remained")
-        check("# Original" in remaining_agents, "original AGENTS content lost")
-        check("# Later user edit" in remaining_agents, "later AGENTS edit lost")
+        check(
+            agents_path.read_text() == "# Original\n# Later user edit\n",
+            "uninstall modified AGENTS.md",
+        )
     # No cf executable/wrapper.
     check(
         not (ROOT / "cf").exists() and not (ROOT / "bin").exists(),
