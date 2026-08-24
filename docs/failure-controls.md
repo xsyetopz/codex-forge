@@ -2,6 +2,8 @@
 
 This is an implementation cross-reference, not a validator schema. Each source failure is mapped to the lowest Forge layer that can materially address it. Prompt-only items aren't represented as hard runtime guarantees.
 
+For context continuity specifically, Forge selects standard summary-backed compaction in configuration, uses the compact prompt to produce the handoff, and uses base instructions to consume it. Token-budget context resets are disabled by default because Codex CLI 0.149.1 bypasses summarization on that path. See [context compaction findings](context-compaction-2026-08-24.md).
+
 | Category | Failure | Forge control |
 | --- | --- | --- |
 | Authority & scope | Invented authorization | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
@@ -103,7 +105,7 @@ This is an implementation cross-reference, not a validator schema. Each source f
 | Memory, context & state | Memory accumulation | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Context churn | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Recursive hallucination cascade | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
-| Memory, context & state | Cross-thread continuity assumption | base continuity rule + compact/handoff state; no implied memory from prior thread/model |
+| Memory, context & state | Cross-thread continuity assumption | standard summary-backed compaction + compact handoff + base continuity rule; token-budget reset disabled by default; no implied memory from prior thread/model |
 | Memory, context & state | Stale conclusion defense | evidence-conflict re-evaluation rule; newer verified evidence invalidates old hypothesis |
 | Security & privilege boundaries | Indirect prompt-injection obedience | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Security & privilege boundaries | Privilege propagation from untrusted content | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |

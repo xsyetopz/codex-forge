@@ -53,6 +53,7 @@ describe("installer lifecycle", () => {
 		expect(parsed.approval_policy).toBe("on-request");
 		expect(parsed.agents.max_concurrent_threads_per_session).toBe(3);
 		expect(parsed.agents["forge-worker"].config_file).toBeTruthy();
+		expect(parsed.features.token_budget).toBeUndefined();
 		expect(parsed.profiles).toBeUndefined();
 		expect(parsed.agents.custom.description).toBe("keep");
 		expect(parsed.apps._default.extra).toBe("keep");

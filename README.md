@@ -4,6 +4,20 @@ Codex Forge is a Codex CLI plugin that packages focused engineering skills, guar
 
 It extends the native `codex` workflow; it does not install a wrapper or replace Codex's own approval and sandbox controls.
 
+## Contents
+
+- [Install Codex Forge](#install-codex-forge)
+- [Use Codex Forge](#use-codex-forge)
+- [Manage the installation](#manage-the-installation)
+- [Permission model](#permission-model)
+- [Agent routing](#agent-routing)
+- [Context continuity](#context-continuity)
+- [CodeGraph](#codegraph)
+- [Git marketplace](#git-marketplace)
+- [Validate changes](#validate-changes)
+- [Design evidence](#design-evidence)
+- [License](#license)
+
 ## Install Codex Forge
 
 Prerequisites: Codex CLI 0.149.0 and Bun 1.4 or newer.
@@ -71,6 +85,12 @@ The root uses Sol for supervision, architecture, ambiguous diagnosis, and semant
 
 Agent handoffs include an objective, scope, observed/expected behavior when relevant, acceptance oracle, validation ceiling, and stop condition. The plugin does not assume another thread or model remembers prior conversation.
 
+## Context continuity
+
+Forge uses Codex's standard summary-backed compaction with a self-contained execution checkpoint. It does not enable token-budget context resets by default because Codex CLI 0.149.1 skips summarization on that path, and continuity then depends on a separately available durable checkpoint service.
+
+See [context compaction findings](docs/context-compaction-2026-08-24.md) for the recorded incident, upstream mechanism, adopted controls, avoided alternatives, and verification limits.
+
 ## CodeGraph
 
 Forge installs `@colbymchenry/codegraph` when optional tools are enabled. The launcher prefers an installed `codegraph`, then Bun/bunx, pnpm/pnpx, Yarn, and npx. It never initializes a repository: creating `.codegraph/` remains an explicit user decision.
@@ -100,7 +120,7 @@ Schema validation checks the distributed hook manifest, plugin manifest, and Cod
 
 ## Design evidence
 
-See [design evidence](docs/design-evidence.md), [failure controls](docs/failure-controls.md), and the dated [observational evidence synthesis](docs/observational-evidence-2026-08-22.md). Prompt guidance is kept compact; deterministic hooks, configuration, schemas, and tests own enforceable behavior.
+See [design evidence](docs/design-evidence.md), [failure controls](docs/failure-controls.md), the dated [observational evidence synthesis](docs/observational-evidence-2026-08-22.md), and the [context compaction findings](docs/context-compaction-2026-08-24.md). Prompt guidance is kept compact; deterministic hooks, configuration, schemas, and tests own enforceable behavior.
 
 ## License
 

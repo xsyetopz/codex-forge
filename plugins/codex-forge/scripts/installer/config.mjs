@@ -40,7 +40,6 @@ const TABLE_KEYS = {
 		"cwd_relative_turn_diffs",
 		"unified_image_budget",
 	]),
-	"features.token_budget": new Set(["enabled"]),
 };
 
 const quote = (value) => JSON.stringify(String(value));
@@ -153,7 +152,6 @@ function fragments(home, pluginRoot) {
 			"cwd_relative_turn_diffs = true",
 			"unified_image_budget = true",
 		],
-		"features.token_budget": ["enabled = true"],
 	};
 	const descriptions = JSON.parse(
 		readFileSync(join(pluginRoot, "assets", "agent-descriptions.json"), "utf8"),
