@@ -28,10 +28,9 @@ description: Root-cause and performance diagnosis from reproducible evidence; ex
 ## Resources
 
 - Start with the [reference router](references/index.md) for correctness and performance diagnosis procedures.
-- Contract and cases are in [assets/contract.json](assets/contract.json) and [evals/evals.json](evals/evals.json).
 
 ## Verify
 
 - Done means the causal mechanism is supported and the reproducer passes, or a concrete external blocker is identified.
-- Run `python3 scripts/check.py` from this package plus the reproducer and focused regression checks.
+- Run the reproducer and focused regression checks; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
 - Mark profiler, repeated-trial, integration, or external evidence `UNVERIFIED` when unavailable.

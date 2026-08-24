@@ -28,10 +28,9 @@ description: Code review, test design, and UI verification against explicit acce
 ## Resources
 
 - Start with the [reference router](references/index.md) for review, testing, and UI procedures.
-- Contract and cases are in [assets/contract.json](assets/contract.json) and [evals/evals.json](evals/evals.json).
 
 ## Verify
 
 - Done means the stated criteria and scope were exhausted with evidence and no finding was weakened or suppressed.
-- Run `python3 scripts/check.py` from this package plus the repository-native focused checks.
+- Run the repository-native focused checks; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
 - Mark browser, screenshot, device, integration, or behavioral evidence `UNVERIFIED` when unavailable.

@@ -28,10 +28,9 @@ description: Current technical research with primary-source provenance; excludes
 ## Resources
 
 - Start with the [reference router](references/index.md) for source and synthesis procedure.
-- Contract and cases are in [assets/contract.json](assets/contract.json) and [evals/evals.json](evals/evals.json).
 
 ## Verify
 
 - Done means each consequential claim has an appropriate source or an explicit uncertainty label.
-- Run `python3 scripts/check.py` from this package and verify cited sources remain accessible when network is available.
+- Verify cited sources remain accessible when network is available; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
 - Mark network, paywalled, authentication, or external-source evidence `UNVERIFIED` when unavailable.

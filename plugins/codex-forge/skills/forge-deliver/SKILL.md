@@ -27,11 +27,10 @@ description: Repository implementation, refactoring, and dependency migration; e
 
 ## Resources
 
-- Start with the [reference router](references/index.md); it routes delivery, refactoring, and dependency procedures.
-- Contract and routing cases are package-local in [assets/contract.json](assets/contract.json) and [evals/evals.json](evals/evals.json).
+- Start with the [reference router](references/index.md); it routes specification, delivery, refactoring, and dependency procedures.
 
 ## Verify
 
 - Done means the requested behavior or structural state is present and affected contracts pass without unrelated changes.
-- Run `python3 scripts/check.py` from this package and the repository-native focused tests.
+- Run the repository-native focused tests; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
 - Report static, behavioral, integration, and external-source evidence separately; mark any unavailable category `UNVERIFIED`.

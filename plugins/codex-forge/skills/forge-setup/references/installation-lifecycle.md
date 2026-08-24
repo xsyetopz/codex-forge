@@ -11,6 +11,6 @@ installer cannot inspect or grant that runtime trust. `doctor` reports hook trus
 `UNVERIFIED`/manual when no trustworthy runtime signal is available; a healthy configuration does
 not prove that the hooks were trusted.
 
-The optional-tool phase installs `@colbymchenry/codegraph` as the `codegraph` CLI, preferring Bun, then pnpm, Yarn, and npm. When a global install is unavailable, `scripts/codegraph.py` retains CLI execution through bunx/Bun, pnpm/pnpx, Yarn, then npx. It doesn't initialize repositories. Run `codegraph init <path>` only after an explicit indexing request; use `status`, `sync`, and CLI queries thereafter. The bundled MCP server declaration uses the same launcher as fallback transport and doesn't replace the CLI-first workflow.
+The optional-tool phase installs `@colbymchenry/codegraph` as the `codegraph` CLI, preferring Bun, then pnpm, Yarn, and npm. When a global install is unavailable, `scripts/codegraph.mjs` retains CLI execution through Bun/bunx, pnpm/pnpx, Yarn, then npx. It doesn't initialize repositories. Run `codegraph init <path>` only after an explicit indexing request; use `status`, `sync`, and CLI queries thereafter. The bundled MCP server declaration uses the same launcher as fallback transport and doesn't replace the CLI-first workflow.
 
 Setup does not modify `$CODEX_HOME/AGENTS.md`; repository-local `AGENTS.md` instructions remain under the repository's control. CodeGraph usage guidance is supplied through the installed Forge instructions and session hook context.

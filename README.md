@@ -1,147 +1,105 @@
 # Codex Forge
 
-Codex Forge is a Codex CLI plugin and user-configuration package for Codex 0.149.0. It doesn't provide a wrapper binary. Continue to run `codex` and, when intentionally desired, stock `codex --yolo`.
+Codex Forge is a Codex CLI plugin that packages focused engineering skills, guarded hooks, explicit agent roles, and managed user configuration.
 
-## Contents
+It extends the native `codex` workflow; it does not install a wrapper or replace Codex's own approval and sandbox controls.
 
-- replacement base model instructions and compaction prompt;
-- `forge-*` software-engineering skills;
-- `forge-*` custom subagent role files;
-- plugin lifecycle hooks with `[cf]` context/denial messages;
-- global Forge execpolicy allow/prompt/forbidden rules;
-- transactional Python setup for the normal `$CODEX_HOME/config.toml` (no named profile);
-- verified helper-tool installation, including the CodeGraph CLI;
-- repo-local Codex marketplace manifest suitable for hosting in a GitHub repository.
+## Install Codex Forge
 
-## Local plugin installation
+Prerequisites: Codex CLI 0.149.0 and Bun 1.4 or newer.
 
-From the extracted repository root:
+From the repository root:
 
 ```sh
 codex plugin marketplace add .
 codex plugin add codex-forge@codex-forge
-python3 install.py install
+bun install.mjs install
 ```
 
-The first two commands install the native plugin surfaces. `install.py` materializes Forge-owned user configuration under `$CODEX_HOME` (`~/.codex` by default): model/compaction instructions, registered custom-agent TOMLs, execpolicy rules, and Forge-owned root `config.toml` settings. It creates a timestamped backup and merges managed sections rather than replacing unrelated settings.
+The first two commands install the plugin. The final command merges Forge-owned settings into `$CODEX_HOME/config.toml` (`~/.codex` by default), copies agent/rule/prompt assets, records SHA-256 mappings, and creates a timestamped backup. Unrelated configuration is preserved.
 
-After installation, start a fresh Codex thread and run `/hooks`. Review the exact Forge hook
-definitions and explicitly trust them through Codex. The installer enables the hooks feature but
-cannot inspect or grant hook trust. Re-run `/hooks` and review/trust again whenever the hook
-definitions change; `doctor` reports this runtime trust state as `UNVERIFIED` rather than claiming
-that a healthy configuration proves trust.
+Start a fresh Codex thread after installation. Run `/hooks`, review the exact Forge commands, and explicitly trust them in Codex. The installer enables hooks but cannot inspect or grant trust; `doctor` therefore reports hook trust as `UNVERIFIED`.
 
-Use `python3 install.py install --no-tools` to skip CLI helper installation. Re-running `install`
-upgrades the managed configuration while preserving local overrides. Use
-`python3 install.py install --replace --purge-cache` to replace those overrides with the current
-plugin sources and remove older cached Forge plugin versions.
+## Use Codex Forge
 
-Check or uninstall the user-level configuration with:
+Use Codex normally and select a focused workflow when it matches the task:
+
+```text
+$forge-deliver implement this bounded change and run the affected tests
+```
+
+Available skills:
+
+| Skill | Purpose |
+| --- | --- |
+| `forge-deliver` | Features, fixes, refactoring, and dependency migration |
+| `forge-debug` | Evidence-led root-cause and performance diagnosis |
+| `forge-review` | Code review, test design, and UI verification |
+| `forge-research` | Current technical research with primary sources |
+| `forge-setup` | Installation, repair, inspection, and uninstall |
+| `forge-prompt-audit` | Instruction, hook, and prompt ownership audits |
+
+Each `SKILL.md` is a concise entrypoint. Its `references/index.md` routes to task-specific details so agents do not load unrelated guidance.
+
+## Manage the installation
 
 ```sh
-python3 install.py doctor
-python3 install.py doctor --json
-python3 install.py doctor --purge-cache
-python3 install.py revert
-python3 install.py uninstall
-python3 install.py uninstall --purge
+bun install.mjs doctor
+bun install.mjs doctor --json
+bun install.mjs install --replace --purge-cache
+bun install.mjs revert
+bun install.mjs uninstall
+bun install.mjs uninstall --purge
 ```
 
-Installed Forge files are recorded as source-to-target mappings with SHA-256 hashes. Local edits are treated as overrides: reinstall and uninstall preserve them. Run `revert` when you intentionally want every mapped override replaced with the matching file from the currently installed local or Git-cached plugin source. Preexisting target files are backed up and restored on uninstall when the installed copy was not locally changed.
+- `install --no-tools` skips optional CLI-helper installation.
+- Reinstall preserves mapped files changed locally; `--replace` deliberately replaces those overrides.
+- `revert` restores current plugin sources over mapped targets.
+- `uninstall` restores unchanged preexisting targets and removes unchanged Forge-created targets.
+- `uninstall --purge` also removes plugin registrations, overrides, backup history, and cached installs. Use it only when that destructive scope is intended.
 
-`doctor` reports the source and installed plugin versions, upgrade availability, local override
-count, stale cached installs, whether the `codex-forge` plugin is registered, and whether the hooks
-feature is enabled. Its `--purge-cache` option removes cached versions other than the source
-version. `uninstall --purge` additionally removes installed Forge plugin registrations, locally
-overridden managed files, Forge backup history, and every cached Forge plugin install.
+## Permission model
 
-The installed plugin also exposes `forge-setup`; from a fresh Codex thread it can run the same setup/repair/uninstall script from the installed plugin root.
+Forge configures ordinary Codex work for `approval_policy = "on-request"` and `sandbox_mode = "workspace-write"`. External/public writes remain approval-sensitive. A dedicated PreToolUse hook and `forge.rules` deny recognized catastrophic commands even when other approval boundaries are relaxed.
 
-## GitHub marketplace installation
+The shell backstop is intentionally bounded. It recognizes documented wrappers, operators, destructive Git forms, broad recursive deletion, privilege escalation, host power commands, and download-to-shell pipelines. It does not claim complete shell-language or OS-sandbox coverage. Stock `codex --yolo` remains dangerous and should be limited to externally protected or disposable environments.
 
-The repository root contains `.agents/plugins/marketplace.json` with `codex-forge` at `./plugins/codex-forge`. After publishing the repository to GitHub:
+## Agent routing
+
+The root uses Sol for supervision, architecture, ambiguous diagnosis, and semantic judgment. Registered leaf roles use Luna for bounded work, Terra for justified long-context retrieval, and Sol for hard-tail review. One child is the default; parallel writers require disjoint ownership. Forge children cannot spawn grandchildren.
+
+Agent handoffs include an objective, scope, observed/expected behavior when relevant, acceptance oracle, validation ceiling, and stop condition. The plugin does not assume another thread or model remembers prior conversation.
+
+## CodeGraph
+
+Forge installs `@colbymchenry/codegraph` when optional tools are enabled. The launcher prefers an installed `codegraph`, then Bun/bunx, pnpm/pnpx, Yarn, and npx. It never initializes a repository: creating `.codegraph/` remains an explicit user decision.
+
+When an index exists, use `codegraph explore` before flat search for structural questions. The plugin also exposes `codegraph serve --mcp` through `.mcp.json`.
+
+## Git marketplace
+
+The repo marketplace is `.agents/plugins/marketplace.json`, with the plugin at `plugins/codex-forge`.
 
 ```sh
 codex plugin marketplace add OWNER/REPOSITORY --ref REF
 codex plugin add codex-forge@codex-forge
 ```
 
-Start a fresh Codex thread and invoke `forge-setup` to install the `$CODEX_HOME` pieces. The Python installer is bundled inside the plugin, so a Git marketplace installation doesn't require this source checkout after the plugin has been cached.
+After the plugin is cached, start a fresh thread and use `forge-setup`; the Bun installer is included in the plugin.
 
-Plugin installation and Forge user-configuration setup are separate because plugin skills/hooks/assets are plugin resources while replacement model instructions, user agent registrations, and global execpolicy rules are Codex user configuration.
+## Validate changes
 
-## Permission behavior
-
-Normal `codex` is configured as:
-
-```toml
-approval_policy = "on-request"
-approvals_reviewer = "user"
-sandbox_mode = "workspace-write"
-
-[sandbox_workspace_write]
-network_access = true
+```sh
+bun run validate:schemas
+bun test
 ```
 
-This keeps ordinary repository edits sandboxed without routine approval prompts while allowing the user to approve a focused or external action when its rule is `prompt`. Sandbox escapes fail in normal mode; stock `codex --yolo` remains available when the user intentionally disables Codex sandbox/approvals.
+Schema validation checks the distributed hook manifest, plugin manifest, and skill metadata. The test suite covers hook decisions, configuration merging, local-override preservation, installer lifecycle, and repository contracts. Live model or external integration behavior remains `UNVERIFIED` unless the opt-in isolated runtime harness observes it.
 
-`codex --yolo` remains Codex's native dangerous flag. Forge doesn't alias or wrap it. Current Codex defines it as no approvals + no sandbox. Forge's PreToolUse hook and `forge.rules` still hard-deny known catastrophic/destructive commands and route authorizable public/external mutations to the approval boundary where those enforcement surfaces are dispatched. Don't treat that as an OS sandbox: upstream hook/rule coverage has had gaps, so `--yolo` should still be used only where the host/worktree is disposable or otherwise externally protected.
+## Design evidence
 
-Forge routes external/public writes through the user approval boundary rather than trying to infer consent from prose. This includes Git push, PR/issue/release mutation, publication, remote shell/sync, cluster mutation and infrastructure apply/destroy. Catastrophic shell and history-wipe commands remain hard-denied by `forge.rules` and the dedicated PreToolUse backstop.
+See [design evidence](docs/design-evidence.md), [failure controls](docs/failure-controls.md), and the dated [observational evidence synthesis](docs/observational-evidence-2026-08-22.md). Prompt guidance is kept compact; deterministic hooks, configuration, schemas, and tests own enforceable behavior.
 
-The PreToolUse backstop uses a bounded parser for known shell wrappers, operators, and command
-forms. It does not analyze arbitrary interpreter source or claim complete shell-language coverage;
-unrecognized forms remain subject to the normal Codex policy boundary.
+## License
 
-## Agent routing
-
-The root remains `gpt-5.6-sol` / `medium`. Architecture, ambiguous root cause and final semantic judgment stay in the root and can raise effort when required.
-
-Forge only delegates when the active `spawn_agent` schema can prove an explicit registered Forge `agent_type` route. Generic inherited-model children are denied, and known Forge children cannot spawn grandchildren. Codex 0.149.0 includes leaf-model support under Multi-Agent V2, but Forge requires the explicit role boundary rather than relying on model-only leaf assumptions; runtime/schema evidence still wins over static assumptions.
-
-Default intended routes:
-
-| Work | Route |
-| --- | --- |
-| deterministic exact leaf | Luna low |
-| scouting / bounded implementation | Luna high |
-| hard bounded settled implementation | Luna xhigh |
-| long-context retrieval specialist | Terra high, only when justified |
-| architecture / root cause / semantic review | Sol high in root |
-| demonstrated hard tail | Sol xhigh |
-
-One child is the default. Parallel writes require disjoint ownership. Child context is explicitly bounded; `fork_turns=none`/equivalent is required. A model/agent handoff is treated as a fresh responsibility-specific session: the child receives an explicit objective, observed/expected behavior where relevant, scope, oracle, validation ceiling, and stop condition instead of relying on conversational continuity. Child role files set `agents.enabled=false` and explicitly prohibit spawning; `agents.max_depth=1` is an additional V1 cap, not a V2 recursion guarantee.
-
-Blind consequential audits and ambiguous root-cause debugging remain in Sol. Luna is used after the problem is bounded enough to specify expected behavior and an oracle; this avoids asking a cheaper worker to infer the audit contract while still using it for implementation and deterministic checks.
-
-## Execution efficiency
-
-Forge adds concrete Code Mode batching guidance because controlled GPT-5.6 tests and independent traces found that serializing already-independent nested tool calls can multiply outer model cycles and repeated context processing. Within a bounded stage, independent calls are grouped with `Promise.allSettled`/`Promise.all`; dependent, adaptive, approval-sensitive, waiting, and conflicting mutation work remains sequential. Batching never widens investigation scope, and tool output is bounded at the command/query source.
-
-Forge doesn't send no-op cache heartbeats or poll agents/processes merely to preserve cache state. Community reports show cache lifetime and quota effects vary by model/runtime and can change; manufactured keepalive traffic is therefore not treated as a stable optimization. Long-running continuity is carried by the current repository, explicit task/goal state, compaction state, and structured handoffs rather than an assumption that another thread or model remembers prior work.
-
-For implementation, Forge biases toward first-pass convergence: establish the owner and acceptance oracle, make one coherent patch where practical, validate in one focused batch, repair common causes rather than symptoms, and stop once sufficient evidence supports the requested result.
-
-## Skill surface
-
-Forge exposes six deliberately selected workflows: delivery, debugging, review/verification, external research, Forge setup, and prompt audit. Refactoring and dependency changes branch within delivery; performance work branches within debugging; testing and UI verification branch within review. CodeGraph selection, delegation, model routing, tasklists, persisted goals, batching, and context management remain base instructions, hooks, agent definitions, or runtime primitives rather than competing skills.
-
-Each retained skill uses progressive disclosure: concise selector metadata and `SKILL.md`, with detailed branches under package-local `references/`.
-
-## CodeGraph
-
-Forge installs `@colbymchenry/codegraph` and uses the CLI by default. Package-manager preference is Bun, pnpm, Yarn, then npm. If no global binary is available, the bundled launcher tries Bun/bunx, pnpm/pnpx, Yarn, then npx before MCP is considered. For relationship-heavy work, check `codegraph status . --json`; for an existing index run `codegraph sync .`; then use `codegraph explore --path .`, `codegraph node --path .`, `codegraph callers`, `codegraph callees`, `codegraph impact`, or `codegraph affected` as appropriate. Index creation with `codegraph init <path>` is explicit because it creates a repository-local `.codegraph/` directory.
-
-The plugin exposes `codegraph serve --mcp` through `.mcp.json`, but MCP calls are a last-resort fallback only when the equivalent CLI invocation is unavailable or fails. Forge doesn't install a second graph implementation or retain alternate graph command aliases.
-
-## Updating
-
-Re-run plugin installation through Codex after changing the Git marketplace source, then run `forge-setup`/`python3 install.py install` again so the user-level assets match the installed plugin version. Start a new Codex thread after plugin/prompt changes.
-
-## Validation
-
-Forge vendors the current SchemaStore contracts for hooks, plugin manifests, and skill metadata under `plugins/codex-forge/schemas/`. Run `uv run plugins/codex-forge/scripts/validate_schemas.py` to validate every distributed instance against those exact schemas. `sh tests/test.sh` includes the schema gate and the installer/hook regression suite.
-
-Static prompt and configuration checks do not establish live model adherence, token-use behavior,
-or external integration outcomes; those remain `UNVERIFIED` without a claim-relevant runtime
-harness.
+[MIT](LICENSE)

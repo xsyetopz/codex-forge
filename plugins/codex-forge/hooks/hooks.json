@@ -5,7 +5,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" SessionStart",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs\" SessionStart",
 						"timeout": 10
 					}
 				]
@@ -17,12 +17,17 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "python3 \"$PLUGIN_ROOT/scripts/block-dangerous-commands.py\" PreToolUse",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/block-dangerous-shell-commands.mjs\" PreToolUse",
 						"timeout": 10
 					},
 					{
 						"type": "command",
-						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" PreToolUse",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\" PreToolUse",
+						"timeout": 10
+					},
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs\" PreToolUse",
 						"timeout": 10
 					}
 				]
@@ -33,7 +38,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" SubagentStart",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs\" SubagentStart",
 						"timeout": 10
 					}
 				]

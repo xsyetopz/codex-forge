@@ -28,10 +28,9 @@ description: Agent instruction, hook, and prompt audits for conflicts, redundanc
 ## Resources
 
 - Start with the [reference router](references/index.md) for layer ownership and audit checks.
-- Contract and cases are in [assets/contract.json](assets/contract.json) and [evals/evals.json](evals/evals.json).
 
 ## Verify
 
 - Done means every retained instruction and selector has one distinct owner and no requirement is silently lost.
-- Run `python3 scripts/check.py` from this package plus plugin schema and routing tests.
+- Run plugin schema and routing tests; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
 - Mark behavioral routing, token-use, cache, or external runtime evaluation `UNVERIFIED` when unavailable.
