@@ -9,8 +9,8 @@ const ROOT = resolve(import.meta.dir, "../..");
 const plugin = resolve(ROOT, "plugins/codex-forge");
 
 function runHook(script, event, payload) {
-	const result = spawnSync("bun", [resolve(plugin, "scripts", script), event], {
-		input: JSON.stringify(payload),
+	const result = spawnSync("bun", [resolve(plugin, "scripts", script)], {
+		input: JSON.stringify({ hook_event_name: event, ...payload }),
 		encoding: "utf8",
 	});
 	return {
@@ -30,22 +30,20 @@ describe("dangerous command policy", () => {
 	for (const payload of cases.dangerous_cases)
 		test(`hook denies ${commandText(payload)}`, () => {
 			const result = runHook(
-				"hooks/pre-tool-use/block-dangerous-shell-commands.mjs",
+				"hooks/pre-tool-use/enforce-safe-shell-commands.mjs",
 				"PreToolUse",
 				payload,
 			);
 			expect(result.status).toBe(0);
 			const decision = JSON.parse(result.stdout).hookSpecificOutput;
 			expect(decision.permissionDecision).toBe("deny");
-			expect(decision.permissionDecisionReason).toContain(
-				"block-dangerous-shell-commands",
-			);
+			expect(decision.permissionDecisionReason).toContain("scoped, reversible");
 		});
 	for (const command of cases.git_clean_dry_runs)
 		test(`allows dry-run ${command}`, () => {
 			expect(
 				runHook(
-					"hooks/pre-tool-use/block-dangerous-shell-commands.mjs",
+					"hooks/pre-tool-use/enforce-safe-shell-commands.mjs",
 					"PreToolUse",
 					{
 						tool_name: "shell",
@@ -61,7 +59,7 @@ describe("dangerous command policy", () => {
 		test(`hook allows safe payload ${JSON.stringify(payload)}`, () => {
 			expect(
 				runHook(
-					"hooks/pre-tool-use/block-dangerous-shell-commands.mjs",
+					"hooks/pre-tool-use/enforce-safe-shell-commands.mjs",
 					"PreToolUse",
 					payload,
 				).stdout,
@@ -90,7 +88,7 @@ describe("lifecycle hook", () => {
 			).stdout,
 		).hookSpecificOutput;
 		expect(output.hookEventName).toBe("SubagentStart");
-		expect(output.additionalContext).toContain("don't spawn agents");
+		expect(output.additionalContext).toContain("leave further delegation");
 	});
 	test("advises bounded search without denying it", () => {
 		const output = JSON.parse(

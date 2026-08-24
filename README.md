@@ -38,8 +38,9 @@ Available skills:
 | `forge-research` | Current technical research with primary sources |
 | `forge-setup` | Installation, repair, inspection, and uninstall |
 | `forge-prompt-audit` | Instruction, hook, and prompt ownership audits |
+| `forge-skill-creator` | Agent Skill creation, restructuring, and deterministic package validation |
 
-Each `SKILL.md` is a concise entrypoint. Its `references/index.md` routes to task-specific details so agents do not load unrelated guidance.
+Each `SKILL.md` keeps its shared workflow and high-value gotchas resident. It links directly to focused `references/` files at the step where branch-specific detail becomes relevant.
 
 ## Manage the installation
 
@@ -91,10 +92,11 @@ After the plugin is cached, start a fresh thread and use `forge-setup`; the Bun 
 
 ```sh
 bun run validate:schemas
+bun run validate:skills
 bun test
 ```
 
-Schema validation checks the distributed hook manifest, plugin manifest, and skill metadata. The test suite covers hook decisions, configuration merging, local-override preservation, installer lifecycle, and repository contracts. Live model or external integration behavior remains `UNVERIFIED` unless the opt-in isolated runtime harness observes it.
+Schema validation checks the distributed hook manifest, plugin manifest, and Codex skill metadata. Skill validation checks Agent Skills frontmatter, progressive-disclosure paths, package hygiene, and Codex discovery metadata. The test suite covers hook decisions, configuration merging, local-override preservation, installer lifecycle, and repository contracts. Live model or external integration behavior remains `UNVERIFIED` unless the opt-in isolated runtime harness observes it.
 
 ## Design evidence
 

@@ -1,33 +1,41 @@
 {
+	"description": "Codex Forge lifecycle context and deterministic safety guardrails.",
 	"hooks": {
 		"SessionStart": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs\" SessionStart",
-						"timeout": 10
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs\"",
+						"timeout": 10,
+						"additionalContextLimit": 100
 					}
 				]
 			}
 		],
 		"PreToolUse": [
 			{
-				"matcher": ".*",
+				"matcher": "^Bash$",
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/block-dangerous-shell-commands.mjs\" PreToolUse",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-safe-shell-commands.mjs\"",
 						"timeout": 10
 					},
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\" PreToolUse",
-						"timeout": 10
-					},
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs\"",
+						"timeout": 10,
+						"additionalContextLimit": 100
+					}
+				]
+			},
+			{
+				"matcher": "^Agent$",
+				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs\" PreToolUse",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\"",
 						"timeout": 10
 					}
 				]
@@ -35,11 +43,13 @@
 		],
 		"SubagentStart": [
 			{
+				"matcher": "^forge-",
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs\" SubagentStart",
-						"timeout": 10
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs\"",
+						"timeout": 10,
+						"additionalContextLimit": 100
 					}
 				]
 			}

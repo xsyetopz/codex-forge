@@ -1,36 +1,22 @@
 ---
 name: forge-debug
-description: Root-cause and performance diagnosis from reproducible evidence; excludes known-cause implementation work.
+description: Use this skill when diagnosing an unknown failure, regression, flaky behavior, cross-system bug, or measured performance problem and verifying its root cause. Route known-cause implementation to delivery and review-only work to review.
+license: MIT
 ---
 
 # Forge Debug
 
-## Use this skill
+## Workflow
 
-- Diagnose and fix an unknown failure, regression, flaky behavior, cross-file bug, or measured performance problem.
-- Don't use when the cause and change are already bounded; route implementation to `$forge-deliver` and review-only requests to `$forge-review`.
+1. Record the observed behavior, expected behavior, smallest reproducer, and acceptance oracle before editing.
+2. Keep a short list of competing hypotheses. Gather one discriminating observation at a time and trace outward as evidence requires.
+3. For measured latency, throughput, memory, or resource work, read [the performance workflow](references/performance.md) before changing code.
+4. Identify the lowest causal owner. Apply the smallest authorized repair there, or report the supported cause when the request is diagnostic only.
+5. Re-run the reproducer, then one affected-boundary regression batch. Report the causal mechanism, repair, commands and exit statuses, and material uncertainty.
 
-## Rules
+## Gotchas
 
-- Establish observed behavior, expected behavior, and the strongest available reproducer before editing.
-- Maintain a small hypothesis set and eliminate candidates with targeted evidence.
-- For performance work, establish workload, metric, environment, and baseline before optimization.
-- Fix the lowest causal owner; do not hide deterministic defects with retries, swallowed errors, or broader rewrites.
-
-## Steps
-
-1. Record the reproducer, oracle, scope, and whether the defect is correctness or performance related.
-2. Load the matching procedure from the reference router and trace outward only when evidence requires it.
-3. Test competing hypotheses, identify the causal owner, and implement the smallest authorized repair.
-4. Re-run the reproducer and one affected-boundary regression batch; compare matched measurements for performance claims.
-5. Return root cause, fix, evidence, and remaining uncertainty.
-
-## Resources
-
-- Start with the [reference router](references/index.md) for correctness and performance diagnosis procedures.
-
-## Verify
-
-- Done means the causal mechanism is supported and the reproducer passes, or a concrete external blocker is identified.
-- Run the reproducer and focused regression checks; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
-- Mark profiler, repeated-trial, integration, or external evidence `UNVERIFIED` when unavailable.
+- The narrow reproducer should change from failing to passing for the predicted reason; a broad green suite alone provides weaker causal evidence.
+- Prefer a causal repair over retries, swallowed errors, wider timeouts, or unrelated rewrites.
+- Performance claims require a matched workload, environment, metric, baseline, and repeated measurements.
+- Use `$forge-deliver` for bounded known-cause changes and `$forge-review` for review-only requests.

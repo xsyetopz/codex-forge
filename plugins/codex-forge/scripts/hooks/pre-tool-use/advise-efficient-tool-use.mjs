@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { basename } from "node:path";
-import { emitHook, readStdinJson } from "../hooklib.mjs";
+import { emitHook, readHookPayload } from "../hooklib.mjs";
 import { commandText, shellTokens } from "./shell-command.mjs";
 
 function advisory(command) {
@@ -18,13 +18,13 @@ function advisory(command) {
 		["cat", "sed", "head", "tail"].includes(base) &&
 		values.slice(1).some((value) => value.endsWith("SKILL.md"))
 	)
-		return "Use native skill loading; don't shell-read `SKILL.md` to activate a skill.";
+		return "Activate skills through native skill loading; reserve file reads for package inspection or unavailable native loading.";
 	return null;
 }
 
-const event = process.argv[2] ?? "";
-if (event === "PreToolUse") {
-	const payload = await readStdinJson();
+const event = "PreToolUse";
+const payload = await readHookPayload(event);
+if (payload) {
 	const command = commandText(payload);
 	const context = command === null ? null : advisory(command);
 	if (context) emitHook(event, { context });

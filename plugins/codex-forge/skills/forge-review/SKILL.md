@@ -1,36 +1,23 @@
 ---
 name: forge-review
-description: Code review, test design, and UI verification against explicit acceptance criteria.
+description: Use this skill when reviewing a candidate code change, designing or repairing tests, or verifying visible UI behavior against explicit acceptance criteria. Route authorized implementation to delivery and unknown failures to debug.
+license: MIT
 ---
 
 # Forge Review
 
-## Use this skill
+## Workflow
 
-- Review a candidate change, design or repair tests, or verify visible UI behavior against explicit criteria.
-- Don't edit during review-only work. Route authorized implementation to `$forge-deliver` and unknown failures to `$forge-debug`.
+1. Freeze the candidate and define the audit boundary, expected behavior, and oracle before judging it.
+2. For a code-change review, read [the code review workflow](references/code-review.md). For test design or repair, read [the test design workflow](references/test-design.md). For visible UI verification, read [the UI verification workflow](references/ui-verification.md).
+3. Trace changed contracts to their consumers and cover the complete stated scope.
+4. Verify each finding with source or runtime evidence. When fixes are explicitly authorized, repair the smallest causal owner and re-check affected states.
+5. Return actionable findings ordered by consequence. When none remain, state the checked criteria and material residual uncertainty.
 
-## Rules
+## Gotchas
 
-- Freeze the candidate and establish the audit boundary, expected behavior, and oracle before judging it.
+- Review-only work preserves the candidate unchanged.
 - Prioritize correctness, regression, security, concurrency, data loss, accessibility, and contract failures over subjective style.
-- Tests must encode product behavior rather than the current implementation or checker shape.
-- Visible claims require actual target states and breakpoints when the environment is available.
-
-## Steps
-
-1. Classify the request as code review, test-focused verification, or UI verification and load the routed procedure.
-2. Trace changed contracts to consumers and inspect the full stated scope, not only the first finding.
-3. Verify findings with source or runtime evidence; keep functional, visual, and static evidence distinct.
-4. If fixes are authorized, change the smallest causal owner and re-check affected states.
-5. Return actionable findings ordered by consequence, or state checked criteria and residual uncertainty when none remain.
-
-## Resources
-
-- Start with the [reference router](references/index.md) for review, testing, and UI procedures.
-
-## Verify
-
-- Done means the stated criteria and scope were exhausted with evidence and no finding was weakened or suppressed.
-- Run the repository-native focused checks; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
-- Mark browser, screenshot, device, integration, or behavioral evidence `UNVERIFIED` when unavailable.
+- Tests encode product behavior rather than the current implementation or checker shape.
+- Static inspection establishes static evidence. Keep behavioral, integration, and visual claims tied to their own evidence.
+- Use `$forge-deliver` for authorized implementation and `$forge-debug` for unknown root causes.

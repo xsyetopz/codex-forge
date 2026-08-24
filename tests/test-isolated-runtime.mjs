@@ -213,9 +213,9 @@ function findInstalledScript(home, name) {
 function directDenial(home, scriptName, payload, fragment) {
 	const script = findInstalledScript(home, scriptName);
 	if (!script) return false;
-	const result = run(["bun", script, "PreToolUse"], {
+	const result = run(["bun", script], {
 		env: { ...process.env, CODEX_HOME: home },
-		input: JSON.stringify(payload),
+		input: JSON.stringify({ hook_event_name: "PreToolUse", ...payload }),
 		timeout: 20_000,
 	});
 	if (result.status || result.timedOut) return false;
@@ -453,15 +453,15 @@ function main() {
 						return ["FAIL", "dangerous attempt changed the sentinel"];
 					const direct = directDenial(
 						home,
-						"block-dangerous-shell-commands.mjs",
+						"enforce-safe-shell-commands.mjs",
 						{
 							tool_name: "shell",
 							tool_input: { command: "command -- sudo -n true" },
 						},
-						"block-dangerous-shell-commands",
+						"scoped, reversible",
 					);
 					return direct &&
-						structuredMarker(events, "block-dangerous-shell-commands", "deny")
+						structuredMarker(events, "scoped, reversible", "deny")
 						? null
 						: [
 								"UNVERIFIED",

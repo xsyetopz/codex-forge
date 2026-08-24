@@ -1,36 +1,23 @@
 ---
 name: forge-deliver
-description: Repository implementation, refactoring, and dependency migration; excludes diagnosis and review-only work.
+description: Use this skill when implementing a bounded repository feature or fix, performing a structural refactor, or migrating a dependency. Route unknown root-cause diagnosis to debug and review-only work to review.
+license: MIT
 ---
 
 # Forge Delivery
 
-## Use this skill
+## Workflow
 
-- Implement a bounded feature or fix, perform a requested structural refactor, or migrate a dependency.
-- Don't use for unknown root causes, review-only work, setup, prompt policy, or research without implementation; route those to `$forge-debug`, `$forge-review`, `$forge-setup`, `$forge-prompt-audit`, or `$forge-research`.
+1. Resolve repository instructions, source owners, callers, consumers, generated-source boundaries, and the narrowest observable success condition.
+2. When requirements need an implementation-ready boundary, read [the specification workflow](references/specification.md).
+3. For a move, extraction, consolidation, or topology change, read [the structural migration workflow](references/structural-migrations.md). For a package or API version change, read [the dependency migration workflow](references/dependency-migrations.md).
+4. Implement through canonical sources and update both sides of every affected contract. Keep the patch within the requested outcome.
+5. Validate the narrow behavior first, the affected boundary second, and the repository-required final gate once.
+6. Report the observable result, changed paths, commands and exit statuses, and unavailable integration or external evidence.
 
-## Rules
+## Gotchas
 
-- Preserve explicit constraints, public contracts, repository ownership, and generated-source boundaries.
-- Establish an observable success condition before nontrivial edits; for migrations, record invariants and dependency order.
-- Use current upstream evidence for versioned dependencies. Don't choose an unstated major version or add an unsupported compatibility shim.
-- Keep changes within the requested outcome and stop before adjacent cleanup.
-
-## Steps
-
-1. Resolve repository instructions, source owners, callers, contracts, and the focused acceptance oracle.
-2. Classify the change as ordinary delivery, structural migration, or dependency migration and load the matching procedure from the reference router.
-3. Implement through canonical sources, changing both sides of affected contracts and sequencing shared contracts before dependents.
-4. Run the narrowest meaningful validation, then only affected integration checks.
-5. Report changed boundaries, observable result, commands, and material limitations.
-
-## Resources
-
-- Start with the [reference router](references/index.md); it routes specification, delivery, refactoring, and dependency procedures.
-
-## Verify
-
-- Done means the requested behavior or structural state is present and affected contracts pass without unrelated changes.
-- Run the repository-native focused tests; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
-- Report static, behavioral, integration, and external-source evidence separately; mark any unavailable category `UNVERIFIED`.
+- Add an alias, fallback, forwarding wrapper, or compatibility shim only when a supported consumer requires it.
+- Preserve the requested major version and verify current upstream guidance before changing a versioned API or dependency.
+- Treat tests and generated artifacts as consumers unless repository evidence identifies them as source authority.
+- Use `$forge-debug` for unknown causes, `$forge-review` for review-only work, `$forge-setup` for Forge installation, and `$forge-prompt-audit` for instruction ownership.

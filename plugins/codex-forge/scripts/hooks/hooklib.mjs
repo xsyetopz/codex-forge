@@ -9,6 +9,11 @@ export async function readStdinJson() {
 	}
 }
 
+export async function readHookPayload(expectedEvent) {
+	const payload = await readStdinJson();
+	return payload.hook_event_name === expectedEvent ? payload : null;
+}
+
 export function emitHook(event, { deny, context } = {}) {
 	const hookSpecificOutput = { hookEventName: event };
 	if (deny) {

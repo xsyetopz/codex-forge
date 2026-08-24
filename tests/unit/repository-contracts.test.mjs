@@ -37,36 +37,34 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		),
 	).toBe(true);
 	expect(commands).toEqual([
-		'bun "$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs" SessionStart',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/block-dangerous-shell-commands.mjs" PreToolUse',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs" PreToolUse',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs" PreToolUse',
-		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs" SubagentStart',
+		'bun "$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-safe-shell-commands.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs"',
 	]);
 	expect(
 		commands.every((command) =>
-			/\/(?:advise|block|enforce|provide)-[a-z0-9-]+\.mjs" /.test(command),
+			/\/(?:advise|enforce|provide)-[a-z0-9-]+\.mjs"$/.test(command),
 		),
 	).toBe(true);
+	expect(hooks.description).toBeTruthy();
+	expect(hooks.hooks.PreToolUse.map((group) => group.matcher)).toEqual([
+		"^Bash$",
+		"^Agent$",
+	]);
 	expect(existsSync(join(PLUGIN, "scripts", "hook.mjs"))).toBe(false);
 	expect(
-		existsSync(join(PLUGIN, "scripts", "block-dangerous-commands.mjs")),
+		existsSync(
+			join(
+				PLUGIN,
+				"scripts",
+				"hooks",
+				"pre-tool-use",
+				"block-dangerous-shell-commands.mjs",
+			),
+		),
 	).toBe(false);
-	for (const eventDirectory of [
-		"permission-request",
-		"post-compact",
-		"post-tool-use",
-		"pre-compact",
-		"session-end",
-		"session-start",
-		"stop",
-		"subagent-start",
-		"subagent-stop",
-		"user-prompt-submit",
-	])
-		expect(
-			existsSync(join(PLUGIN, "scripts", "hooks", eventDirectory, ".gitkeep")),
-		).toBe(true);
 	expect(mcp.mcpServers.codegraph).toEqual({
 		cwd: ".",
 		command: "bun",
@@ -96,9 +94,11 @@ test("instructions preserve root, child, batching, and evidence boundaries", () 
 	for (const marker of [
 		"Every agent message to user begins with 🤖",
 		"sole user-facing interface",
-		"Workers cannot create further agents",
+		"The root alone handles user messages and further delegation",
 		"Promise.allSettled",
 		"Ask one focused question only",
+		"Treat every unrecognized change as user-owned",
+		"repair the causal change immediately within the authorized scope",
 		"Stay silent during routine",
 		"codegraph_explore",
 		"Load skills natively",
@@ -125,18 +125,11 @@ test("README installation and validation commands match distributed entrypoints"
 		expect(existsSync(join(ROOT, path))).toBe(true);
 	const setup = read(join(PLUGIN, "skills", "forge-setup", "SKILL.md"));
 	const lifecycle = read(
-		join(
-			PLUGIN,
-			"skills",
-			"forge-setup",
-			"references",
-			"installation-lifecycle.md",
-		),
+		join(PLUGIN, "skills", "forge-setup", "references", "managed-files.md"),
 	);
 	for (const document of [readme, setup, lifecycle]) {
 		expect(document).toContain("/hooks");
 		expect(document.toLowerCase()).toContain("trust");
-		expect(document.toLowerCase()).toContain("cannot");
 	}
 });
 
@@ -164,21 +157,17 @@ describe("skills", () => {
 		.map((entry) => entry.name)
 		.sort();
 	test("surface remains focused", () =>
-		expect(skillDirectories).toHaveLength(6));
+		expect(skillDirectories).toHaveLength(7));
 	for (const name of skillDirectories)
 		test(`${name} is concise and indexable`, () => {
 			const directory = join(PLUGIN, "skills", name);
 			const skill = read(join(directory, "SKILL.md"));
 			expect(skill).toContain(`name: ${name}`);
-			expect(
-				skill
-					.split("\n")
-					.filter((line) => line.startsWith("## "))
-					.map((line) => line.slice(3)),
-			).toEqual(["Use this skill", "Rules", "Steps", "Resources", "Verify"]);
-			expect(skill).toContain("UNVERIFIED");
-			expect(skill).toContain("bun test");
-			expect(existsSync(join(directory, "references", "index.md"))).toBe(true);
+			expect(skill).toMatch(/description: Use this skill when\b/);
+			expect(skill).toContain("## Workflow");
+			expect(skill).toContain("## Gotchas");
+			expect(skill.split("\n").length).toBeLessThanOrEqual(500);
+			expect(existsSync(join(directory, "references", "index.md"))).toBe(false);
 			const metadata = YAML.parse(
 				read(join(directory, "agents", "openai.yaml")),
 			);
@@ -189,6 +178,14 @@ describe("skills", () => {
 			))
 				expect(existsSync(join(directory, link))).toBe(true);
 		});
+	test("forge-skill-creator ships deterministic package tools", () => {
+		for (const name of ["check-skill.mjs", "init-skill.mjs"])
+			expect(
+				existsSync(
+					join(PLUGIN, "skills", "forge-skill-creator", "scripts", name),
+				),
+			).toBe(true);
+	});
 });
 
 test("registered agent role contracts remain bounded", () => {

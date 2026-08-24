@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { emitHook } from "../hooklib.mjs";
+import { emitHook, readHookPayload } from "../hooklib.mjs";
 
-const event = process.argv[2] ?? "";
-if (event === "SessionStart")
+const event = "SessionStart";
+if (await readHookPayload(event))
 	emitHook(event, {
 		context:
-			"Code discovery: prefer `codegraph_explore` over grep/file-read for structural queries; use `rg`/read for literals.",
+			"Code discovery: prefer `codegraph_explore` over `grep`/file-read for structural queries; use `rg`/read for literals.",
 	});

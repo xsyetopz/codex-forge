@@ -1,37 +1,25 @@
 ---
 name: forge-setup
-description: Codex Forge installation, repair, override restoration, inspection, and uninstall workflows.
+description: Use this skill when installing, inspecting, repairing, upgrading, reverting local overrides, or uninstalling Codex Forge user configuration. Route ordinary repository work to the matching engineering skill.
+license: MIT
+compatibility: Requires Codex CLI and Bun 1.4 or newer.
 ---
 
 # Forge Setup
 
-## Use this skill
+## Workflow
 
-- Install, repair, inspect, upgrade, revert local overrides, or uninstall Codex Forge user configuration.
-- Don't use for ordinary repository implementation, debugging, review, or prompt-policy design.
+1. Resolve the plugin root from this loaded skill package so every command targets the active copy.
+2. For inspection, repair, or upgrade, first run `bun <plugin-root>/scripts/install.mjs doctor`.
+3. Run `install` for initial setup or an override-preserving upgrade. Use `--replace` when the user explicitly wants mapped local overrides overwritten, `--purge-cache` to remove stale cached versions, and `--no-tools` when optional tools should remain uninstalled.
+4. For replace, revert, purge, or uninstall behavior, read [the managed-file lifecycle](references/managed-files.md) before acting.
+5. After installation or a hook-definition change, start a fresh Codex thread, run `/hooks`, review the exact Forge commands, and explicitly trust them. The installer enables hooks while Codex owns trust review.
+6. Run `doctor` again and report the resolved Codex home, changed files, backup, command results, warnings, and manual or external verification still required.
 
-## Rules
+## Gotchas
 
-- Locate the plugin root from the loaded skill path and never guess another copy.
-- Preserve unrelated user configuration and use hashed source-to-target mappings for managed files.
-- Run doctor before repair or upgrade; do not bypass backups, validation, or override preservation.
-- Install optional tools only within the setup workflow or when an explicitly invoked workflow requires them.
-
-## Steps
-
-1. Load the lifecycle procedure and run `bun <plugin-root>/scripts/install.mjs doctor` for inspection, repair, or upgrade.
-2. Run `install` for setup or an override-preserving upgrade. Use `--replace` only when the user wants mapped local overrides replaced, `--purge-cache` when old cached Forge versions should be removed, and `--no-tools` only when the user explicitly declines optional tools.
-3. After plugin installation or a hook-definition change, start a fresh Codex thread, run `/hooks`, review the exact Forge hook commands, and explicitly trust them through Codex. The installer may enable `features.hooks`, but it cannot inspect or grant runtime hook trust; `doctor` reports trust as `UNVERIFIED`/manual.
-4. Run `revert` only when the user wants mapped local overrides replaced by current plugin sources.
-5. Run `uninstall` to remove Forge-owned state and restore unchanged preexisting files; use `--purge` only for an explicit request to remove plugin registrations, overrides, backup history, and cached Forge installs.
-6. Return the resolved Codex home, changed files, backup, command results, and warnings.
-
-## Resources
-
-- Start with the [reference router](references/index.md) for lifecycle and hashed-file semantics.
-
-## Verify
-
-- Done means doctor reflects the requested state and unrelated configuration remains intact.
-- Run the repository installer regression tests; when editing Forge itself, run `bun run validate:schemas && bun test` from the repository root.
-- Mark Codex CLI, optional-tool, network, or user-home integration checks `UNVERIFIED` when unavailable.
+- Preserve unrelated user configuration. Recorded source-to-target hashes identify Forge-managed files and local overrides.
+- Keep backups, validation, hook trust, and local-override preservation in the lifecycle.
+- `revert` replaces mapped targets with current plugin sources; pre-install restoration belongs to uninstall.
+- Use `uninstall --purge` only for the explicitly broader removal of registrations, overrides, backup history, and cached installs.
+- Optional tool installation is authorized during Forge setup or when an explicitly invoked Forge workflow requires the missing tool.

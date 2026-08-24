@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { emitHook, readStdinJson } from "../hooklib.mjs";
+import { emitHook, readHookPayload } from "../hooklib.mjs";
 
 const FORGE_ROLES = new Set([
 	"forge-architect",
@@ -24,9 +24,9 @@ function knownForgeIdentity(value) {
 	);
 }
 
-const event = process.argv[2] ?? "";
-if (event === "PreToolUse") {
-	const payload = await readStdinJson();
+const event = "PreToolUse";
+const payload = await readHookPayload(event);
+if (payload) {
 	const tool = String(payload.tool_name ?? payload.tool ?? "").toLowerCase();
 	const input = payload.tool_input ?? payload.input ?? {};
 	if (
@@ -42,7 +42,7 @@ if (event === "PreToolUse") {
 		} = input;
 		if (forkContext === true || !["none", 0, "0"].includes(forkTurns))
 			emitHook(event, {
-				deny: "Set fork_turns=none for a no-parent-context subagent.",
+				deny: "Create the Forge child with `fork_turns=none` so it starts with only its bounded assignment.",
 			});
 		else {
 			const callerValues = [
@@ -55,11 +55,11 @@ if (event === "PreToolUse") {
 			];
 			if (callerValues.some(knownForgeIdentity))
 				emitHook(event, {
-					deny: "Forge child agents cannot spawn children (runtime caller identity is unverified; defense-in-depth).",
+					deny: "Return the need for further delegation to the root agent, which owns Forge agent orchestration.",
 				});
 			else if (!FORGE_ROLES.has(role))
 				emitHook(event, {
-					deny: "Select a registered Forge agent_type for the child.",
+					deny: "Select a registered Forge `agent_type` for this bounded child assignment.",
 				});
 		}
 	}

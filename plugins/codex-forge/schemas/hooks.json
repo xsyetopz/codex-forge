@@ -7,13 +7,15 @@
 	"required": ["hooks"],
 	"additionalProperties": false,
 	"properties": {
+		"description": {
+			"type": "string",
+			"description": "Optional metadata describing this hooks file. It does not affect matching."
+		},
 		"hooks": {
 			"type": "object",
 			"description": "Hook event registrations grouped by Codex lifecycle event.",
 			"minProperties": 1,
-			"additionalProperties": {
-				"$ref": "#/definitions/matcherGroups"
-			},
+			"additionalProperties": false,
 			"properties": {
 				"SessionStart": {
 					"$ref": "#/definitions/matcherGroups",
@@ -54,6 +56,10 @@
 				"Stop": {
 					"$ref": "#/definitions/matcherGroups",
 					"description": "Runs when a turn stops. Codex currently ignores matcher for this event."
+				},
+				"SessionEnd": {
+					"$ref": "#/definitions/matcherGroups",
+					"description": "Runs synchronously when the root session ends. The matcher currently filters the reason other."
 				}
 			}
 		}
@@ -126,9 +132,14 @@
 					"type": "string",
 					"description": "Optional status text shown while the hook runs."
 				},
+				"additionalContextLimit": {
+					"type": "integer",
+					"description": "Approximate token threshold for additionalContext before Codex spills full output to disk.",
+					"minimum": 0
+				},
 				"async": {
 					"type": "boolean",
-					"description": "Parsed by Codex, but async command hooks aren't supported yet and async handlers are skipped."
+					"description": "Runs the command in the background. Background hooks can provide later informational output but cannot control the triggering operation."
 				}
 			}
 		},
