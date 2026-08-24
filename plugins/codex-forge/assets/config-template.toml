@@ -17,6 +17,8 @@ sandbox_mode = "workspace-write"
 network_access = true
 
 [agents]
+
+
 @AGENT_ROLES@
 
 [apps._default]
