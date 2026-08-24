@@ -38,7 +38,11 @@ def validate(instance, schema_name: str, label: str) -> None:
 
 
 def main() -> None:
-    validate(load_json(ROOT / "hooks.json"), "hooks.json", "hooks.json")
+    validate(
+        load_json(ROOT / "hooks" / "hooks.json"),
+        "hooks.json",
+        "hooks/hooks.json",
+    )
     validate(
         load_json(ROOT / ".codex-plugin" / "plugin.json"),
         "plugin.json",

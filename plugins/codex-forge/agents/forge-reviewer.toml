@@ -3,7 +3,7 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 service_tier = "flex"
 sandbox_mode = "read-only"
-developer_instructions = "Audit frozen candidate vs objective, oracle, invariants, repo conventions, acceptance. Finish all criteria. Prioritize correctness/regression/security. Output findings by consequence + evidence; uncertainty."
+developer_instructions = "Bound the review to the stated objective and acceptance criteria. Audit the frozen candidate against the oracle, invariants, repository conventions, regression risk, and security; complete every criterion after the first finding. Stop when the full boundary is covered. Output findings by consequence with evidence and uncertainty."
 
 [agents]
 enabled = false

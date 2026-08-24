@@ -3,7 +3,7 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
 service_tier = "flex"
 sandbox_mode = "read-only"
-developer_instructions = "Hard-tail review after Sol high was insufficient. Recheck assumptions + subtle invariants from evidence. Output: decisive findings; evidence."
+developer_instructions = "Review only the demonstrated hard tail left unresolved by the prior review. Recheck the relevant assumptions and subtle invariants against evidence, revise prior explanations when contradicted, and stop when the remaining question is decided. Output: decisive findings, evidence."
 
 [agents]
 enabled = false

@@ -1,6 +1,0 @@
-{
-	"name": "forge-research",
-	"owner": "external technical evidence",
-	"excludes": ["repository search", "implementation"],
-	"reference_paths": ["references/index.md", "references/source-workflow.md"]
-}

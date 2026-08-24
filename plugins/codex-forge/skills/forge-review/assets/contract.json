@@ -1,9 +1,0 @@
-{
-	"name": "forge-review",
-	"owner": "candidate verification",
-	"excludes": ["unbounded implementation", "unknown diagnosis"],
-	"reference_paths": [
-		"references/index.md",
-		"references/verification-workflows.md"
-	]
-}

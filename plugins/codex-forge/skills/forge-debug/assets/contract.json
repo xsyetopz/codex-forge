@@ -1,9 +1,0 @@
-{
-	"name": "forge-debug",
-	"owner": "causal diagnosis",
-	"excludes": ["known-cause implementation", "review-only work"],
-	"reference_paths": [
-		"references/index.md",
-		"references/diagnostic-workflows.md"
-	]
-}

@@ -6,6 +6,28 @@ import shlex
 import sys
 from pathlib import Path
 
+FORGE_ROLES = {
+    "forge-architect",
+    "forge-debugger",
+    "forge-direct",
+    "forge-hard-worker",
+    "forge-retriever",
+    "forge-reviewer",
+    "forge-scout",
+    "forge-tail-reviewer",
+    "forge-worker",
+}
+
+
+def known_forge_identity(value) -> bool:
+    if not isinstance(value, str):
+        return False
+    identity = value.strip().lower()
+    return any(
+        identity == role or identity.startswith((f"{role}:", f"{role}/"))
+        for role in FORGE_ROLES
+    )
+
 
 def emit(event: str, *, deny: str | None = None, context: str | None = None) -> None:
     out = {"hookSpecificOutput": {"hookEventName": event}}
@@ -83,12 +105,33 @@ def main() -> None:
         fork_turns = inp.get("fork_turns")
         fork_context = inp.get("fork_context")
         role = inp.get("agent_type")
-        model = inp.get("model")
-        if fork_context is True or fork_turns not in (None, "none", 0, "0"):
-            emit(event, deny="Use no parent-context fork for subagents.")
+        # Omitted fork_turns uses the runtime's full-context default. Require an
+        # explicit no-context value rather than guessing that omission is safe.
+        if fork_context is True or fork_turns not in ("none", 0, "0"):
+            emit(event, deny="Set fork_turns=none for a no-parent-context subagent.")
             return
-        if not role and not model:
-            emit(event, deny="Select a Forge role or explicit cheaper child model.")
+        # Caller identity is runtime-provided and unverified. This check is only
+        # defense in depth; the registered role and runtime max-depth controls
+        # remain the authoritative boundaries.
+        caller_values = [
+            payload.get("agent_type"),
+            payload.get("agent_id"),
+            payload.get("parent_agent_type"),
+            payload.get("parent_agent_id"),
+            inp.get("parent_agent_type"),
+            inp.get("parent_agent_id"),
+        ]
+        if any(known_forge_identity(value) for value in caller_values):
+            emit(
+                event,
+                deny=(
+                    "Forge child agents cannot spawn children "
+                    "(runtime caller identity is unverified; defense-in-depth)."
+                ),
+            )
+            return
+        if role not in FORGE_ROLES:
+            emit(event, deny="Select a registered Forge agent_type for the child.")
             return
 
     command = command_text(inp)

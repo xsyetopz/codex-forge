@@ -9,7 +9,7 @@ service_tier = "flex"
 model_instructions_file = "@MODEL_INSTRUCTIONS@"
 experimental_compact_prompt_file = "@COMPACT_PROMPT@"
 include_collaboration_mode_instructions = false
-approval_policy = "never"
+approval_policy = "on-request"
 approvals_reviewer = "user"
 sandbox_mode = "workspace-write"
 

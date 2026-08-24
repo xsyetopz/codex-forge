@@ -1,42 +1,99 @@
-# Common local commands are allowed; stricter matching rules below still win.
-prefix_rule(pattern=[["pwd","ls","rg","fd","cat","head","tail","sed","awk","wc","sort","uniq","cut","tr","stat","file","realpath","dirname","basename","printf","echo","mkdir","cp","mv","touch"]], decision="allow", justification="[cf] Ordinary local inspection/edit support command.")
-prefix_rule(pattern=["git"], decision="allow", justification="[cf] Local Git operations are allowed unless a stricter rule below forbids them.")
-prefix_rule(pattern=[["cargo","rustc","go","python","python3","node","npm","pnpm","yarn","deno","bun","pytest","ruff","mypy","uv","cmake","make","ninja"]], decision="allow", justification="[cf] Ordinary local build/test/tool command.")
+# Safe local inspection and build commands are allowed without an approval prompt.
+prefix_rule(pattern=[[
+  "pwd","ls","rg","fd","cat","head","tail","sed","awk","wc","sort","uniq","cut","tr",
+  "stat","file","realpath","dirname","basename","printf","echo","mkdir","cp","mv","touch",
+  "rmdir"
+]], decision="allow", justification="[cf] Ordinary local inspection/edit support command.")
+prefix_rule(pattern=[[
+  "python","python3","node","deno","bun","pytest","ruff","mypy","uv","cmake","make","ninja",
+  "go","rustc"
+]], decision="allow", justification="[cf] Ordinary local build/test/tool command.")
 
-prefix_rule(pattern=["rm"], decision="forbidden", justification="[cf] File deletion is disabled. Use a reversible edit or let the user delete explicitly.")
-prefix_rule(pattern=["rmdir"], decision="allow", justification="[cf] Removing empty directories is safe local cleanup.")
-prefix_rule(pattern=["unlink"], decision="forbidden", justification="[cf] File deletion is disabled.")
+# Git allows only read/status and non-destructive inspection prefixes. Do not add a broad `git`
+# allow: it would mask later destructive subcommands and global-option forms.
+prefix_rule(pattern=["git","status"], decision="allow", justification="[cf] Local Git status is safe inspection.")
+prefix_rule(pattern=["git","diff"], decision="allow", justification="[cf] Local Git diff is safe inspection.")
+prefix_rule(pattern=["git","log"], decision="allow", justification="[cf] Local Git log is safe inspection.")
+prefix_rule(pattern=["git","show"], decision="allow", justification="[cf] Local Git show is safe inspection.")
+prefix_rule(pattern=["git","rev-parse"], decision="allow", justification="[cf] Local Git metadata inspection is safe.")
+prefix_rule(pattern=["git","ls-files"], decision="allow", justification="[cf] Local Git file inspection is safe.")
+prefix_rule(pattern=["git","grep"], decision="allow", justification="[cf] Local Git content inspection is safe.")
+prefix_rule(pattern=["git","blame"], decision="allow", justification="[cf] Local Git history inspection is safe.")
+prefix_rule(pattern=["git","clean",["-n","--dry-run"]], decision="allow", justification="[cf] Git clean dry-run does not mutate the worktree.")
+
+# Package/build commands are narrow so publication never inherits a tool-wide allow.
+prefix_rule(pattern=["cargo",["check","test","build","fmt","clippy","metadata","tree"]], decision="allow", justification="[cf] Ordinary local Cargo build/test command.")
+prefix_rule(pattern=["npm",["test","run","ci","install","pack"]], decision="allow", justification="[cf] Ordinary local npm build/test command.")
+prefix_rule(pattern=["pnpm",["test","run","install","pack"]], decision="allow", justification="[cf] Ordinary local pnpm build/test command.")
+prefix_rule(pattern=["yarn",["test","run","install","pack"]], decision="allow", justification="[cf] Ordinary local Yarn build/test command.")
+
+# Common separated workspace/global-option spellings are explicit prompt
+# boundaries. Execpolicy prefix rules match literal tokens and have no wildcard
+# form, so attached/equal values remain unmatched (and therefore do not inherit
+# a safe direct allow) unless a bounded literal is added deliberately.
+prefix_rule(pattern=["npm",["--workspace","--prefix","-w"]], decision="prompt", justification="[cf] Confirm npm workspace-scoped publication or lifecycle.")
+prefix_rule(pattern=["pnpm",["--filter","--dir","-C"]], decision="prompt", justification="[cf] Confirm pnpm workspace-scoped publication or lifecycle.")
+prefix_rule(pattern=["yarn",["--cwd"]], decision="prompt", justification="[cf] Confirm Yarn workspace-scoped publication or lifecycle.")
+prefix_rule(pattern=["cargo",["--manifest-path"]], decision="prompt", justification="[cf] Confirm Cargo commands scoped to another manifest.")
+
+# Focused deletion and external mutation are authorizable actions. The runtime approval policy
+# asks the user when these rules match; the PreToolUse backstop still denies catastrophic forms.
+prefix_rule(pattern=["rm"], decision="prompt", justification="[cf] Confirm focused file deletion before running it.")
+prefix_rule(pattern=["unlink"], decision="prompt", justification="[cf] Confirm focused file deletion before running it.")
+prefix_rule(pattern=["git","push"], decision="prompt", justification="[cf] Confirm remote Git writes before running them.")
+prefix_rule(pattern=["git","-C"], decision="prompt", justification="[cf] Confirm Git commands with an alternate working tree.")
+prefix_rule(pattern=["git","-c"], decision="prompt", justification="[cf] Confirm Git commands with inline configuration.")
+prefix_rule(pattern=["git","--git-dir"], decision="prompt", justification="[cf] Confirm Git commands with an alternate repository.")
+prefix_rule(pattern=["git","--work-tree"], decision="prompt", justification="[cf] Confirm Git commands with an alternate work tree.")
+prefix_rule(pattern=["git","--namespace"], decision="prompt", justification="[cf] Confirm Git commands with an alternate namespace.")
+prefix_rule(pattern=["git","branch","--delete"], decision="prompt", justification="[cf] Confirm Git branch deletion.")
+prefix_rule(pattern=["git","checkout","--"], decision="prompt", justification="[cf] Confirm restoring tracked files from Git.")
+prefix_rule(pattern=["git","restore"], decision="prompt", justification="[cf] Confirm restoring tracked files from Git.")
+prefix_rule(pattern=["git","rebase"], decision="prompt", justification="[cf] Confirm local history rewriting.")
+prefix_rule(pattern=["git","commit","--amend"], decision="prompt", justification="[cf] Confirm local history rewriting.")
+prefix_rule(pattern=["gh","pr",["create","comment","review","merge","close","reopen"]], decision="prompt", justification="[cf] Confirm GitHub pull-request mutation or messaging.")
+prefix_rule(pattern=["gh","issue",["create","comment","close","reopen","edit"]], decision="prompt", justification="[cf] Confirm GitHub issue mutation or messaging.")
+prefix_rule(pattern=["gh","release",["create","delete","edit","upload"]], decision="prompt", justification="[cf] Confirm GitHub release mutation.")
+prefix_rule(pattern=["npm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["pnpm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["yarn","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["yarn","npm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["npm","exec","--","npm","publish"], decision="prompt", justification="[cf] Confirm package publication through npm exec.")
+prefix_rule(pattern=["pnpm","exec","npm","publish"], decision="prompt", justification="[cf] Confirm package publication through pnpm exec.")
+prefix_rule(pattern=["yarn","exec","npm","publish"], decision="prompt", justification="[cf] Confirm package publication through Yarn exec.")
+prefix_rule(pattern=["twine","upload"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["cargo","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["docker","push"], decision="prompt", justification="[cf] Confirm registry publication.")
+prefix_rule(pattern=["helm",["install","upgrade","uninstall"]], decision="prompt", justification="[cf] Confirm cluster mutation.")
+prefix_rule(pattern=["kubectl",["apply","create","delete","edit","patch","replace","rollout","scale","set","taint","drain","cordon","uncordon"]], decision="prompt", justification="[cf] Confirm cluster mutation.")
+prefix_rule(pattern=["terraform",["apply","destroy","import"]], decision="prompt", justification="[cf] Confirm infrastructure mutation.")
+prefix_rule(pattern=["tofu",["apply","destroy","import"]], decision="prompt", justification="[cf] Confirm infrastructure mutation.")
+prefix_rule(pattern=[["ssh","scp","sftp"]], decision="prompt", justification="[cf] Confirm remote-host access or writes.")
+prefix_rule(pattern=["rsync"], decision="prompt", justification="[cf] Confirm remote or bulk synchronization.")
+
+# Genuinely destructive or catastrophic operations are not authorizable through routine HITL.
+prefix_rule(pattern=["rm","-rf","/"], decision="forbidden", justification="[cf] Catastrophic recursive deletion is disabled.")
+prefix_rule(pattern=["rm","-rf","."], decision="forbidden", justification="[cf] Catastrophic recursive deletion is disabled.")
+prefix_rule(pattern=["rm","-rf","*"], decision="forbidden", justification="[cf] Catastrophic recursive deletion is disabled.")
+prefix_rule(pattern=["rm","-rf","--no-preserve-root","/"], decision="forbidden", justification="[cf] Catastrophic recursive deletion is disabled.")
 prefix_rule(pattern=["shred"], decision="forbidden", justification="[cf] Destructive overwrite is disabled.")
 prefix_rule(pattern=["truncate"], decision="forbidden", justification="[cf] Destructive truncation is disabled.")
-prefix_rule(pattern=[["dd","mkfs","mkfs.ext4","mkfs.xfs","wipefs","fdisk","parted"]], decision="forbidden", justification="[cf] Block-device destructive commands are disabled.")
+prefix_rule(pattern=[["dd","cfdisk","fdisk","mkfs","mkfs.ext4","mkfs.xfs","mkswap","parted","sfdisk","wipefs"]], decision="forbidden", justification="[cf] Block-device destructive commands are disabled.")
 prefix_rule(pattern=[["shutdown","reboot","halt","poweroff"]], decision="forbidden", justification="[cf] Host power-state changes are disabled.")
-prefix_rule(pattern=[["sudo","doas"]], decision="forbidden", justification="[cf] Privilege escalation is disabled.")
-
-prefix_rule(pattern=["git","clean"], decision="forbidden", justification="[cf] Destructive working-tree cleanup is disabled.")
+prefix_rule(pattern=["systemctl",["halt","poweroff","reboot","shutdown"]], decision="forbidden", justification="[cf] Host power-state changes are disabled.")
+prefix_rule(pattern=["init",["0","6"]], decision="forbidden", justification="[cf] Host power-state changes are disabled.")
+prefix_rule(pattern=[["sudo","doas","su","runuser","pkexec"]], decision="forbidden", justification="[cf] Privilege escalation is disabled.")
 prefix_rule(pattern=["git","reset","--hard"], decision="forbidden", justification="[cf] Destructive reset is disabled.")
-prefix_rule(pattern=["git","checkout","--"], decision="forbidden", justification="[cf] Bulk destructive checkout is disabled; use focused patches.")
+prefix_rule(pattern=["git","checkout","--","."], decision="forbidden", justification="[cf] Bulk destructive checkout is disabled.")
 prefix_rule(pattern=["git","restore","."], decision="forbidden", justification="[cf] Bulk destructive restore is disabled.")
 prefix_rule(pattern=["git","branch","-D"], decision="forbidden", justification="[cf] Forced branch deletion is disabled.")
+prefix_rule(pattern=["git","branch","--delete","--force"], decision="forbidden", justification="[cf] Forced branch deletion is disabled.")
+prefix_rule(pattern=["git","branch","--delete","-f"], decision="forbidden", justification="[cf] Forced branch deletion is disabled.")
+prefix_rule(pattern=["git","branch","-d","-f"], decision="forbidden", justification="[cf] Forced branch deletion is disabled.")
+prefix_rule(pattern=["git","branch",["-df","-fd"]], decision="forbidden", justification="[cf] Forced branch deletion is disabled.")
 prefix_rule(pattern=["git","stash",["drop","clear"]], decision="forbidden", justification="[cf] Stash destruction is disabled.")
-prefix_rule(pattern=["git","rebase"], decision="forbidden", justification="[cf] History rewriting is disabled.")
-prefix_rule(pattern=["git","filter-branch"], decision="forbidden", justification="[cf] History rewriting is disabled.")
-prefix_rule(pattern=["git","filter-repo"], decision="forbidden", justification="[cf] History rewriting is disabled.")
+prefix_rule(pattern=["git","stash",["-q","--quiet"],["drop","clear"]], decision="forbidden", justification="[cf] Stash destruction is disabled.")
+prefix_rule(pattern=["git","filter-branch"], decision="forbidden", justification="[cf] Irreversible history rewriting is disabled.")
+prefix_rule(pattern=["git","filter-repo"], decision="forbidden", justification="[cf] Irreversible history rewriting is disabled.")
 prefix_rule(pattern=["git","reflog","expire"], decision="forbidden", justification="[cf] Reflog destruction is disabled.")
-prefix_rule(pattern=["git","commit","--amend"], decision="forbidden", justification="[cf] History rewriting is disabled.")
-prefix_rule(pattern=["git","push"], decision="forbidden", justification="[cf] Remote Git writes are disabled by Forge. The user must perform or explicitly reconfigure external writes.")
-
-prefix_rule(pattern=["gh","pr",["create","comment","review","merge","close","reopen"]], decision="forbidden", justification="[cf] GitHub PR mutation/messaging is disabled.")
-prefix_rule(pattern=["gh","issue",["create","comment","close","reopen","edit"]], decision="forbidden", justification="[cf] GitHub issue mutation/messaging is disabled.")
-prefix_rule(pattern=["gh","release",["create","delete","edit","upload"]], decision="forbidden", justification="[cf] GitHub release mutation is disabled.")
-prefix_rule(pattern=["npm","publish"], decision="forbidden", justification="[cf] Publication is disabled.")
-prefix_rule(pattern=["pnpm","publish"], decision="forbidden", justification="[cf] Publication is disabled.")
-prefix_rule(pattern=["yarn","npm","publish"], decision="forbidden", justification="[cf] Publication is disabled.")
-prefix_rule(pattern=["twine","upload"], decision="forbidden", justification="[cf] Publication is disabled.")
-prefix_rule(pattern=["cargo","publish"], decision="forbidden", justification="[cf] Publication is disabled.")
-prefix_rule(pattern=["docker","push"], decision="forbidden", justification="[cf] Registry publication is disabled.")
-prefix_rule(pattern=["helm",["install","upgrade","uninstall"]], decision="forbidden", justification="[cf] Cluster mutation is disabled.")
-prefix_rule(pattern=["kubectl",["apply","create","delete","edit","patch","replace","rollout","scale","set","taint","drain","cordon","uncordon"]], decision="forbidden", justification="[cf] Cluster mutation is disabled.")
-prefix_rule(pattern=["terraform",["apply","destroy","import"]], decision="forbidden", justification="[cf] Infrastructure mutation is disabled.")
-prefix_rule(pattern=["tofu",["apply","destroy","import"]], decision="forbidden", justification="[cf] Infrastructure mutation is disabled.")
-prefix_rule(pattern=[["ssh","scp","sftp"]], decision="forbidden", justification="[cf] Remote-host mutation/command execution is disabled.")
-prefix_rule(pattern=["rsync"], decision="forbidden", justification="[cf] Remote/local destructive synchronization is disabled by default.")
+prefix_rule(pattern=["git","push",["--force","--force-with-lease","-f"]], decision="forbidden", justification="[cf] Destructive remote history rewriting is disabled.")

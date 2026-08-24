@@ -17,6 +17,11 @@
 				"hooks": [
 					{
 						"type": "command",
+						"command": "python3 \"$PLUGIN_ROOT/scripts/block-dangerous-commands.py\" PreToolUse",
+						"timeout": 10
+					},
+					{
+						"type": "command",
 						"command": "python3 \"$PLUGIN_ROOT/scripts/hook.py\" PreToolUse",
 						"timeout": 10
 					}

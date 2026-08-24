@@ -1,9 +1,0 @@
-{
-	"name": "forge-setup",
-	"owner": "Forge user configuration lifecycle",
-	"excludes": ["application implementation", "prompt audit"],
-	"reference_paths": [
-		"references/index.md",
-		"references/installation-lifecycle.md"
-	]
-}

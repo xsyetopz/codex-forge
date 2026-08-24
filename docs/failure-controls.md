@@ -4,13 +4,13 @@ This is an implementation cross-reference, not a validator schema. Each source f
 
 | Category | Failure | Forge control |
 | --- | --- | --- |
-| Authority & scope | Invented authorization | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Decision ownership theft | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Scope creep | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Unauthorized environment mutation | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Destructive-operation overreach | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Compatibility invention | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
-| Authority & scope | Negative-condition inversion | base authority rules + Forge hard-deny enforcement for dangerous/external actions |
+| Authority & scope | Invented authorization | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Decision ownership theft | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Scope creep | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Unauthorized environment mutation | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Destructive-operation overreach | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Compatibility invention | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Negative-condition inversion | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
 | Interpretation & assumptions | Silent assumption filling | base evidence/assumption rules + compact state preservation |
 | Interpretation & assumptions | Intent invention | base evidence/assumption rules + compact state preservation |
 | Interpretation & assumptions | Example or convention promoted to requirement | base evidence/assumption rules + compact state preservation |

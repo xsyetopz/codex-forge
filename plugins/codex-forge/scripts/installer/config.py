@@ -139,7 +139,7 @@ def fragments(home: Path, plugin_root: Path):
         f"experimental_compact_prompt_file = {quote(str(forge / 'compact-prompt.md'))}",
         f"developer_instructions = {quote(developer)}",
         "include_collaboration_mode_instructions = false",
-        'approval_policy = "never"',
+        'approval_policy = "on-request"',
         'approvals_reviewer = "user"',
         'sandbox_mode = "workspace-write"',
     ]
@@ -157,6 +157,7 @@ def fragments(home: Path, plugin_root: Path):
             "open_world_enabled = false",
         ],
         "features": [
+            "hooks = true",
             "fast_mode = false",
             "personality = false",
             "prevent_idle_sleep = true",

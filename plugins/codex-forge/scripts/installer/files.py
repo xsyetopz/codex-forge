@@ -25,7 +25,12 @@ def managed_file_pairs(home: Path, plugin_root: Path) -> list[tuple[Path, Path]]
 
 
 def install_files(
-    home: Path, plugin_root: Path, backup: Path, prior_state: dict
+    home: Path,
+    plugin_root: Path,
+    backup: Path,
+    prior_state: dict,
+    *,
+    force: bool = False,
 ) -> list[dict]:
     prior = {item["target"]: item for item in prior_state.get("file_mappings", [])}
     mappings = []
@@ -45,7 +50,7 @@ def install_files(
                 saved.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(target, saved)
                 previous_backup = str(saved)
-        if overridden:
+        if overridden and not force:
             print(f"[cf] preserving local override: {target}", file=sys.stderr)
         else:
             shutil.copy2(source, target)
@@ -55,7 +60,7 @@ def install_files(
                 "target": str(target),
                 "source_sha256": file_sha(source),
                 "installed_sha256": (old or {}).get("installed_sha256")
-                if overridden
+                if overridden and not force
                 else file_sha(target),
                 "previous_existed": previous_existed,
                 "previous_backup": previous_backup,
@@ -64,12 +69,16 @@ def install_files(
     return mappings
 
 
-def uninstall_files(home: Path, state: dict) -> None:
+def uninstall_files(home: Path, state: dict, *, force: bool = False) -> None:
     mappings = state.get("file_mappings", [])
     if mappings:
         for item in mappings:
             target = Path(item["target"])
-            if target.exists() and file_sha(target) != item.get("installed_sha256"):
+            if (
+                not force
+                and target.exists()
+                and file_sha(target) != item.get("installed_sha256")
+            ):
                 print(f"[cf] preserving local override during uninstall: {target}")
                 continue
             previous = item.get("previous_backup")
