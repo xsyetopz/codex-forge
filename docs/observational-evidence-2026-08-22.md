@@ -45,12 +45,10 @@ The supplied capture reports a task-shape distinction rather than a universal
 Luna capability claim: Luna reports are strongest for explicit, tightly scoped,
 locally verifiable implementation; reports become negative when the task
 requires ambiguity resolution, cross-system reasoning, architecture, or
-semantic review. The repository copy under `docs/reddit/` was the same capture
-with whitespace-only differences (Downloads SHA-256
-`323769b45272e61b592ffa4e625c552f26aad1ba1487bf8f553eba10d59db949`;
-repository-copy SHA-256 `9e60857cc71a8f71a40a8c5699e646e758c9b1557c72d960fcb1268529832ab2`).
-It was an unexplained local duplicate, so
-the raw copy is removed; the supplied Downloads file remains unchanged.
+semantic review. The capture is retained at `docs/reddit/` as the repository
+evidence copy. Its SHA-256 exactly matches the supplied Downloads source:
+`323769b45272e61b592ffa4e625c552f26aad1ba1487bf8f553eba10d59db949`.
+The Downloads source remains unchanged.
 
 Forge response: make acceptance-surface routing explicit at the developer
 instruction boundary. Luna roles require an explicit contract, local blast
