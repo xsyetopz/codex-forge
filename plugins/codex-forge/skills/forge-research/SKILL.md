@@ -1,6 +1,6 @@
 ---
 name: forge-research
-description: Use this skill when current APIs, libraries, standards, releases, or technical options require external evidence and primary-source provenance. Route repository-local facts to code discovery and implementation to delivery.
+description: Explicit `$forge-research` workflow for current APIs, libraries, standards, releases, and technical options requiring primary sources.
 license: MIT
 ---
 

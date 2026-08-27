@@ -40,9 +40,12 @@ if (payload) {
 			fork_context: forkContext,
 			agent_type: role,
 		} = input;
-		if (forkContext === true || !["none", 0, "0"].includes(forkTurns))
+		if (
+			forkContext === true ||
+			(forkTurns !== undefined && !["none", 0, "0"].includes(forkTurns))
+		)
 			emitHook(event, {
-				deny: "Create the Forge child with `fork_turns=none` so it starts with only its bounded assignment.",
+				deny: "Create the Forge child with `fork_context=false` so it starts with only its bounded assignment.",
 			});
 		else {
 			const callerValues = [

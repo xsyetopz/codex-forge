@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { TOML } from "bun";
 
 const ROOT_KEYS = new Set([
@@ -10,6 +10,7 @@ const ROOT_KEYS = new Set([
 	"model_verbosity",
 	"service_tier",
 	"model_instructions_file",
+	"model_catalog_json",
 	"experimental_compact_prompt_file",
 	"developer_instructions",
 	"include_collaboration_mode_instructions",
@@ -30,19 +31,16 @@ const TABLE_KEYS = {
 		"destructive_enabled",
 		"open_world_enabled",
 	]),
-	features: new Set([
-		"hooks",
-		"fast_mode",
-		"personality",
-		"prevent_idle_sleep",
-		"local_thread_store_compression",
-		"apply_patch_preserve_line_endings",
-		"cwd_relative_turn_diffs",
-		"unified_image_budget",
-	]),
+	features: new Set(["fast_mode", "personality", "prevent_idle_sleep"]),
 };
 
 const quote = (value) => JSON.stringify(String(value));
+const DEFAULT_MAX_CONCURRENT_THREADS = 8;
+const LEGACY_DEFAULT_MAX_CONCURRENT_THREADS = 3;
+const maxThreadsAssignment = (text) =>
+	text.match(
+		/^\s*(?:agents\.)?max_concurrent_threads_per_session\s*=\s*(\d+)\s*(?:#.*)?$/m,
+	)?.[1] ?? null;
 const parseTableHeader = (line) =>
 	line.match(/^\s*\[([^[\]]+)]\s*(?:#.*)?$/)?.[1].trim() ?? null;
 const assignmentKey = (line) =>
@@ -108,7 +106,22 @@ export function stripManaged(text) {
 	);
 }
 
-function fragments(home, pluginRoot) {
+export function resolveMaxConcurrentThreads(text) {
+	const unmanaged = maxThreadsAssignment(stripManaged(text));
+	if (unmanaged !== null) return Number(unmanaged);
+	const managed = text.match(
+		/^# >>> codex-forge:(?:agents|table:agents) >>>\n([\s\S]*?)^# <<< codex-forge:(?:agents|table:agents) <<<\n?/m,
+	)?.[1];
+	const managedValue = managed ? maxThreadsAssignment(managed) : null;
+	if (
+		managedValue === null ||
+		Number(managedValue) === LEGACY_DEFAULT_MAX_CONCURRENT_THREADS
+	)
+		return DEFAULT_MAX_CONCURRENT_THREADS;
+	return Number(managedValue);
+}
+
+function fragments(home, pluginRoot, maxConcurrentThreads) {
 	const forge = join(home, "forge");
 	const developer = readFileSync(
 		join(pluginRoot, "assets", "developer-instructions.txt"),
@@ -117,11 +130,12 @@ function fragments(home, pluginRoot) {
 	const root = [
 		'model = "gpt-5.6-sol"',
 		'model_reasoning_effort = "medium"',
-		'plan_mode_reasoning_effort = "high"',
+		'plan_mode_reasoning_effort = "medium"',
 		'model_reasoning_summary = "none"',
 		'model_verbosity = "low"',
 		'service_tier = "flex"',
 		`model_instructions_file = ${quote(join(forge, "model-instructions.md"))}`,
+		`model_catalog_json = ${quote(join(forge, "model-catalog.json"))}`,
 		`experimental_compact_prompt_file = ${quote(join(forge, "compact-prompt.md"))}`,
 		`developer_instructions = ${quote(developer)}`,
 		"include_collaboration_mode_instructions = false",
@@ -133,8 +147,8 @@ function fragments(home, pluginRoot) {
 		sandbox_workspace_write: ["network_access = true"],
 		agents: [
 			'default_subagent_model = "gpt-5.6-luna"',
-			'default_subagent_reasoning_effort = "high"',
-			"max_concurrent_threads_per_session = 3",
+			'default_subagent_reasoning_effort = "medium"',
+			`max_concurrent_threads_per_session = ${maxConcurrentThreads}`,
 			"max_depth = 1",
 		],
 		"apps._default": [
@@ -143,42 +157,28 @@ function fragments(home, pluginRoot) {
 			"open_world_enabled = false",
 		],
 		features: [
-			"hooks = true",
 			"fast_mode = false",
 			"personality = false",
 			"prevent_idle_sleep = true",
-			"local_thread_store_compression = true",
-			"apply_patch_preserve_line_endings = true",
-			"cwd_relative_turn_diffs = true",
-			"unified_image_budget = true",
 		],
 	};
-	const descriptions = JSON.parse(
-		readFileSync(join(pluginRoot, "assets", "agent-descriptions.json"), "utf8"),
-	);
-	const roles = readdirSync(join(pluginRoot, "agents"))
-		.filter((name) => /^forge-.*\.toml$/.test(name))
-		.sort()
-		.map((name) => {
-			const role = name.slice(0, -5);
-			return [
-				`agents.${role}`,
-				[
-					`description = ${quote(descriptions[role])}`,
-					`config_file = ${quote(resolve(home, "agents", name))}`,
-				],
-			];
-		});
-	return [root, tables, roles];
+	return [root, tables];
 }
 
-export function mergeConfig(text, home, pluginRoot) {
+export function mergeConfig(
+	text,
+	home,
+	pluginRoot,
+	{ preserveFrom = text, maxConcurrentThreads } = {},
+) {
+	maxConcurrentThreads ??= resolveMaxConcurrentThreads(preserveFrom);
 	text = stripManaged(text);
 	if (text.trim()) TOML.parse(text);
 	let [rootLines, sections] = splitSections(text);
-	const [desiredRoot, desiredTables, desiredRoles] = fragments(
+	const [desiredRoot, desiredTables] = fragments(
 		home,
 		pluginRoot,
+		maxConcurrentThreads,
 	);
 	rootLines = removeKeys(rootLines, ROOT_KEYS);
 	while (rootLines.length && !rootLines.at(-1).trim()) rootLines.pop();
@@ -206,11 +206,6 @@ export function mergeConfig(text, home, pluginRoot) {
 			]);
 		}
 	}
-	for (const [table, roleValues] of desiredRoles)
-		sections.push([
-			table,
-			managedBlock(`role:${table}`, [`[${table}]`, ...roleValues]),
-		]);
 	let output = rootLines.join("");
 	for (const [, lines] of sections) {
 		if (output && !output.endsWith("\n\n")) output += "\n";

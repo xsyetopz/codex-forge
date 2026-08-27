@@ -123,6 +123,7 @@ function structuredIdentity(events, wanted) {
 		"agent",
 		"agent_id",
 		"agent_name",
+		"agent_role",
 		"agent_type",
 		"name",
 		"recipient",
@@ -147,6 +148,31 @@ function structuredIdentity(events, wanted) {
 			),
 		),
 	);
+}
+
+const structuredChildSession = (events) =>
+	events.some(
+		(event) =>
+			String(event.type ?? "").toLowerCase() === "session_meta" &&
+			(Boolean(event.payload?.parent_thread_id) ||
+				Boolean(event.payload?.source?.subagent)),
+	);
+
+function rolloutEvents(home) {
+	const sessions = join(home, "sessions");
+	if (!existsSync(sessions)) return [];
+	const events = [];
+	const stack = [sessions];
+	while (stack.length)
+		for (const entry of readdirSync(stack.pop(), { withFileTypes: true })) {
+			const path = join(entry.parentPath, entry.name);
+			if (entry.isDirectory()) stack.push(path);
+			else if (/^rollout-.*\.jsonl$/.test(entry.name)) {
+				const [parsed] = parseJsonl(readFileSync(path, "utf8"));
+				events.push(...parsed);
+			}
+		}
+	return events;
 }
 
 function structuredMarker(events, ...markers) {
@@ -324,13 +350,6 @@ function runCase(name, home, parent, files, prompt, check, timeout) {
 			status: /unavailable|timed out|event/.test(error) ? "UNVERIFIED" : "FAIL",
 			reason: error,
 		};
-	if (messages(events).some((message) => !message.startsWith("🤖")))
-		return {
-			name,
-			status: "FAIL",
-			reason:
-				"an emitted agent message did not begin with literal first-character 🤖",
-		};
 	try {
 		const result = check(fixture, events);
 		return result
@@ -362,7 +381,7 @@ function main() {
 		return 0;
 	}
 	process.stderr.write(
-		"UNVERIFIED hook-trust limitation: this opt-in disposable harness uses --dangerously-bypass-hook-trust; it does not establish normal user trust.\n",
+		"UNVERIFIED hook-trust limitation: this opt-in disposable harness uses --dangerously-bypass-hook-trust; it doesn't establish normal user trust.\n",
 	);
 	const requestedTimeout = Number.parseInt(
 		process.env.FORGE_LIVE_EVAL_TIMEOUT ?? "",
@@ -405,11 +424,15 @@ function main() {
 				home,
 				fixtures,
 				{ "README.txt": "fixture\n" },
-				"Reply once with a short agent message beginning with the required emoji.",
-				(_fixture, events) =>
-					messages(events).length
+				"Reply once with exactly READY.",
+				(_fixture, events) => {
+					const emitted = messages(events);
+					if (!emitted.length)
+						return ["UNVERIFIED", "agent-message event is unavailable"];
+					return emitted.some((message) => message.trim() === "READY")
 						? null
-						: ["UNVERIFIED", "agent-message event is unavailable"],
+						: ["FAIL", "the exact READY response was not observed"];
+				},
 				timeout,
 			),
 		);
@@ -427,8 +450,11 @@ function main() {
 							"FORGE_WORKER_OK\n"
 					)
 						return ["FAIL", "worker did not produce the exact fixture"];
-					return structuredSpawn(events) &&
-						structuredIdentity(events, "forge-worker")
+					const rollouts = rolloutEvents(home);
+					const evidence = [...events, ...rollouts];
+					return (structuredSpawn(events) ||
+						structuredChildSession(rollouts)) &&
+						structuredIdentity(evidence, "forge-worker")
 						? null
 						: [
 								"UNVERIFIED",
@@ -480,7 +506,7 @@ function main() {
 					"baseline.txt": "STATUS=healthy\n",
 					"contrary.txt": "CONTRARY_RUNTIME_EVIDENCE=outage\n",
 				},
-				"Read both files, revise the diagnosis from contrary evidence, and do not modify files.",
+				"Read both files, revise the diagnosis from contrary evidence, and don't modify files.",
 				(fixture, events) => {
 					if (
 						JSON.stringify(snapshot(fixture)) !==

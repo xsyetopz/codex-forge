@@ -8,7 +8,7 @@ import {
 	readFileSync,
 	realpathSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { YAML } from "bun";
 
 const ALLOWED_FRONTMATTER = new Set([
@@ -87,9 +87,14 @@ function validate(skillDirectory) {
 	if (!description) errors.push("frontmatter description is required");
 	if (description.length > 1024)
 		errors.push("description exceeds 1024 characters");
-	if (description && !/^Use this skill when\b/.test(description))
+	if (
+		description &&
+		!/^(?:Use this skill when\b|Explicit `\$[a-z0-9-]+` workflow\b)/.test(
+			description,
+		)
+	)
 		warnings.push(
-			"description can improve intent routing by starting with 'Use this skill when'",
+			"description needs intent routing or an explicit selector boundary",
 		);
 
 	if (data.compatibility !== undefined) {
@@ -135,7 +140,9 @@ function validate(skillDirectory) {
 				`move auxiliary documentation out of the skill: ${relative(root, file)}`,
 			);
 		if (basename(file) === ".DS_Store")
-			errors.push(`remove filesystem metadata from the skill: ${relative(root, file)}`);
+			errors.push(
+				`remove filesystem metadata from the skill: ${relative(root, file)}`,
+			);
 		if (lstatSync(file).isSymbolicLink()) {
 			const target = realpathSync(file);
 			if (!inside(root, target))
@@ -145,11 +152,15 @@ function validate(skillDirectory) {
 	for (const resource of ["scripts", "references", "assets"]) {
 		const directory = join(root, resource);
 		if (existsSync(directory) && readdirSync(directory).length === 0)
-			errors.push(`add a runtime resource or remove the empty ${resource}/ directory`);
+			errors.push(
+				`add a runtime resource or remove the empty ${resource}/ directory`,
+			);
 	}
 	for (const file of filesUnder(join(root, "scripts")))
 		if ((lstatSync(file).mode & 0o111) === 0)
-			errors.push(`make the deterministic script executable: ${relative(root, file)}`);
+			errors.push(
+				`make the deterministic script executable: ${relative(root, file)}`,
+			);
 
 	const markdownLinks = [...content.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)]
 		.map((match) => match[1].split("#", 1)[0])
@@ -172,7 +183,7 @@ function validate(skillDirectory) {
 				"link focused references directly from SKILL.md instead of references/index.md",
 			);
 		if (!markdownLinks.includes(rel))
-			errors.push(`reference is not linked directly from SKILL.md: ${rel}`);
+			errors.push(`reference isn't linked directly from SKILL.md: ${rel}`);
 		if (
 			/\[[^\]]*\]\((?:\.\.\/)?[^)]+\.md(?:#[^)]+)?\)/.test(
 				readFileSync(file, "utf8"),
@@ -210,7 +221,7 @@ function validate(skillDirectory) {
 	}
 
 	const negations = (
-		body.match(/\b(?:do not|don't|never|cannot|can't|must not|avoid)\b/gi) ?? []
+		body.match(/\b(?:don't|don't|never|cannot|can't|must not|avoid)\b/gi) ?? []
 	).length;
 	const instructionLines = body
 		.split(/\r?\n/)

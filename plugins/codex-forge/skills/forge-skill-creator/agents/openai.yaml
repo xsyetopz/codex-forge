@@ -2,3 +2,5 @@ interface:
   display_name: "Forge Skill Creator"
   short_description: "Create and validate focused Agent Skills"
   default_prompt: "Use $forge-skill-creator to create or improve this Agent Skill and validate its package."
+policy:
+  allow_implicit_invocation: false

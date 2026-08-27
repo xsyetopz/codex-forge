@@ -55,8 +55,8 @@ export const SHELL_CONTROL_PREFIXES = new Set([
 const COMMAND_FIELDS = ["command", "cmd", "script"];
 const PUNCTUATION = new Set([..."();<>|&"]);
 
-export function token(value, quoted = false) {
-	return { value, quoted };
+export function token(value, quoted = false, dynamic = false) {
+	return { value, quoted, dynamic };
 }
 
 export function isSyntaxToken(item, values) {
@@ -246,11 +246,13 @@ export function shellTokens(command) {
 		const tokens = [];
 		let current = "";
 		let quoted = false;
+		let dynamic = false;
 		let quote = null;
 		const flush = () => {
-			if (current || quoted) tokens.push(token(current, quoted));
+			if (current || quoted) tokens.push(token(current, quoted, dynamic));
 			current = "";
 			quoted = false;
+			dynamic = false;
 		};
 		for (let index = 0; index < input.length; index += 1) {
 			const character = input[index];
@@ -270,7 +272,10 @@ export function shellTokens(command) {
 					['"', "\\", "$", "`"].includes(input[index + 1])
 				) {
 					current += input[++index];
-				} else current += character;
+				} else {
+					if (character === "$" || character === "`") dynamic = true;
+					current += character;
+				}
 				continue;
 			}
 			if (character === "'" || character === '"') {
@@ -295,6 +300,7 @@ export function shellTokens(command) {
 				tokens.push(token(punctuation));
 				continue;
 			}
+			if (character === "$" || character === "`") dynamic = true;
 			current += character;
 		}
 		if (quote !== null) return null;

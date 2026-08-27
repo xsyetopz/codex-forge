@@ -1,6 +1,6 @@
 ---
 name: forge-debug
-description: Use this skill when diagnosing an unknown failure, regression, flaky behavior, cross-system bug, or measured performance problem and verifying its root cause. Route known-cause implementation to delivery and review-only work to review.
+description: Explicit `$forge-debug` workflow for unknown failures, regressions, flaky behavior, cross-system bugs, and measured performance problems.
 license: MIT
 ---
 

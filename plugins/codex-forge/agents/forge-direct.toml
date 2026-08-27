@@ -1,10 +1,7 @@
 name = "forge-direct"
+description = "Deterministic local work with an exact oracle."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "low"
 service_tier = "flex"
 sandbox_mode = "read-only"
 developer_instructions = "Execute the exact local task against its stated expected result and oracle. Inspect the target before acting and verify the observable outcome before completion. Escalate architecture, hidden invariants, or broad judgment. Output: result, evidence."
-
-[agents]
-enabled = false
-max_depth = 1

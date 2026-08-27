@@ -6,17 +6,37 @@
 				"hooks": [
 					{
 						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/session-start.mjs\"",
+						"timeout": 10
+					},
+					{
+						"type": "command",
 						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs\"",
 						"timeout": 10,
-						"additionalContextLimit": 100
+						"additionalContextLimit": 256
 					}
 				]
 			}
 		],
 		"PreToolUse": [
 			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/pre-tool-use.mjs\"",
+						"timeout": 10
+					}
+				]
+			},
+			{
 				"matcher": "^Bash$",
 				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-sandbox-cache.mjs\"",
+						"timeout": 10
+					},
 					{
 						"type": "command",
 						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-safe-shell-commands.mjs\"",
@@ -39,6 +59,16 @@
 						"timeout": 10
 					}
 				]
+			},
+			{
+				"matcher": "^multi_agent_v1wait_agent$",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-long-agent-wait.mjs\"",
+						"timeout": 10
+					}
+				]
 			}
 		],
 		"SubagentStart": [
@@ -50,6 +80,45 @@
 						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs\"",
 						"timeout": 10,
 						"additionalContextLimit": 100
+					},
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-start.mjs\"",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"SubagentStop": [
+			{
+				"matcher": "^forge-",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-stop.mjs\"",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/stop.mjs\"",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"SessionEnd": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/session-end.mjs\"",
+						"timeout": 3
 					}
 				]
 			}

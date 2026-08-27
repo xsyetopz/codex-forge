@@ -1,6 +1,6 @@
 {
 	"name": "codex-forge",
-	"version": "0.1.0-alpha.2",
+	"version": "0.1.0-alpha.4",
 	"description": "Codex CLI software-engineering workflows, agent roles, hooks, and user-level configuration.",
 	"author": {
 		"name": "Codex Forge"

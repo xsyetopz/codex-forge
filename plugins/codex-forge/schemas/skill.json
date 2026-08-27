@@ -80,7 +80,7 @@
 				"allow_implicit_invocation": {
 					"title": "allow implicit invocation",
 					"type": "boolean",
-					"description": "When false, Codex will not implicitly invoke the skill based on the user prompt. Explicit $skill invocation still works.\nhttps://developers.openai.com/codex/skills#optional-metadata"
+					"description": "When false, Codex won't implicitly invoke the skill based on the user prompt. Explicit $skill invocation still works.\nhttps://developers.openai.com/codex/skills#optional-metadata"
 				}
 			}
 		}

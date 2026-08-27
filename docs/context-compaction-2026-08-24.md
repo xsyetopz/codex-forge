@@ -1,6 +1,6 @@
 # Context compaction findings - 2026-08-24
 
-This document records the observed continuity failure, its causal mechanism in Codex CLI 0.149.1, and why Forge uses standard summarizing compaction instead of token-budget context resets. It is documentation only and is not injected into agent turns.
+This document records the observed continuity failure, its causal mechanism in Codex CLI 0.149.1, and why Codex Forge 0.1.0-alpha.4 uses standard summarizing compaction instead of token-budget context resets. It is documentation only and isn't injected into agent turns.
 
 ## Observed incident
 
@@ -47,35 +47,53 @@ Forge leaves `features.token_budget` unset so Codex uses its standard compaction
 
 This prompt is guidance, not deterministic storage. Its scope is the content and quality of a summary after the standard compaction path has actually selected it.
 
-### A post-compaction continuity instruction
+### Lean Forge model instructions plus a developer layer
 
-`plugins/codex-forge/assets/model-instructions.md` tells the resumed model to continue the active task from preserved state without greeting or requesting the task again. This covers the consumer side of the handoff; the compact prompt covers the producer side.
+Codex Forge 0.1.0-alpha.4 installs the lean 245-word Forge model-instruction layer from
+`plugins/codex-forge/assets/model-instructions.md` to
+`$CODEX_HOME/forge/model-instructions.md` and points
+`model_instructions_file` at that exact target. Forge adds its runtime
+orchestration layer from `plugins/codex-forge/assets/developer-instructions.txt`
+through `developer_instructions`. The compact prompt produces the handoff while
+the Forge model layer remains its consumer.
 
-## What Forge avoids
+## Current configuration boundaries
 
-| Avoided choice | Why it is avoided |
+| 0.1.0-alpha.4 state | Reason |
 | --- | --- |
-| Enabling `[features.token_budget]` by default | In Codex CLI 0.149.1 it replaces summarization with a fresh window. Without a verified durable notes/history service, that can discard the active task. |
-| Treating a file in `/tmp` as cross-window memory | Environment state may survive, but a new model does not discover or read an arbitrary file automatically. A checkpoint is useful only when the resumed context receives its location and an instruction to load it. |
-| Fixing the symptom only in the compact prompt | The failing path bypasses the compact prompt entirely. Prompt changes alone cannot repair a configuration path that never summarizes. |
-| Blocking `new_context` with a PreToolUse hook as the primary repair | A hook would reject one model-invoked reset but would not repair automatic token-budget rollover. Removing the incompatible feature selects the correct path at its owner. |
-| Assuming the compaction banner proves a summary exists | Both standard summarization and summary-free token-budget resets emit the compaction lifecycle. The rollout and active configuration must distinguish them. |
-| Claiming live rollover behavior from static tests | Configuration and prompt tests prove the selected setup, not a complete long-running model session. Live context exhaustion remains a separate integration observation. |
+| Standard summary-backed compaction | `features.token_budget` remains unset, selecting Codex's summary-producing path and `experimental_compact_prompt_file`. |
+| Self-contained execution checkpoint | `assets/compact-prompt.md` records objective, constraints, decisions, worktree state, validation, blockers, and the next action. |
+| Forge model instruction layer | `assets/model-instructions.md` is installed at `$CODEX_HOME/forge/model-instructions.md` and selected through `model_instructions_file`. |
+| Forge developer instruction layer | `assets/developer-instructions.txt` is installed through `developer_instructions`. |
+| Durable handoff state | The compact prompt supplies the summary content; live context exhaustion remains a separate integration observation. |
 
 Token-budget mode can be reconsidered when the target Codex version provides a durable checkpoint service in the active tool surface, the rollover guidance matches that service, and an integration test demonstrates that an unfinished task continues without user restatement.
+
+### Codex CLI 0.150.1 compatibility
+
+Codex CLI 0.150.1 keeps the compaction paths above and enables retained-image
+budgeting for remote compaction by default. Retained images now count against
+the existing remote-compaction token budget, and older images are trimmed as
+needed. This patch improves bounded image retention; it does not change Forge's
+selection of standard summary-backed compaction or provide a model-callable
+pause/resume goal transition. See the
+[0.150.1 release](https://github.com/openai/codex/releases/tag/rust-v0.150.1)
+and the tagged
+[`CompactionImageBudget` branch](https://github.com/openai/codex/blob/rust-v0.150.1/codex-rs/core/src/compact_remote_v2.rs#L308-L318).
 
 ## Ownership and regression protection
 
 | Concern | Canonical Forge owner | Verification |
 | --- | --- | --- |
-| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/config.mjs` | Installer test asserts that a fresh Forge configuration does not contain `features.token_budget`. |
+| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/config.mjs` | Installer test asserts that a fresh Forge configuration doesn't contain `features.token_budget`. |
 | Produce a useful checkpoint | `assets/compact-prompt.md` | Installed asset mapping and repository contract validation; model quality remains behavioral evidence. |
-| Resume instead of asking for the task | `assets/model-instructions.md` | Installed asset mapping; a forced live rollover was not run. |
+| Select lean Forge model instructions | `assets/model-instructions.md` and `scripts/installer/config.mjs` | Installer mapping, exact managed path, and repository contract validation. |
+| Add lean Forge developer instructions | `assets/developer-instructions.txt` and `scripts/installer/config.mjs` | Installed asset mapping and repository contract validation. |
 | Upgrade an existing installation | Installer managed-block replacement | Reinstall removed Forge's prior token-budget table while preserving unrelated user configuration. |
 
 ## Validation performed
 
-- The complete unit suite passed: 194 tests.
+- Repository contract, installer, schema, and skill validation cover the alpha.4 configuration and distributed assets.
 - Hook/plugin schemas and all seven skill packages validated.
 - A local Forge reinstall removed `features.token_budget` from the effective configuration.
 - `bun install.mjs doctor --json` reported the installation healthy and current.

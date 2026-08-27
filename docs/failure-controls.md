@@ -42,13 +42,15 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Tool use & execution | Tool-result ignore | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Tool-output fabrication | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Tool-argument hallucination | base tool policy + forge.rules/PreToolUse where enforceable |
+| Tool use & execution | Stated check-before-use sequence inverted | base instructions: user requirements and stated order precede the tool-outcome sentence (GPT-5.6 Goal before Tools) |
 | Tool use & execution | Tool failure masking | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Cascading execution after broken invariant | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Wrong-tool or wrong-protocol assumption | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Reasoning leakage into machine arguments | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Unbounded tool loop | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Serializable independent-call churn | concrete Code Mode bounded batching rule; dependencies/adaptive work remain sequential |
-| Tool use & execution | Poll/heartbeat churn | base no-cache-heartbeat/no-progress-polling rule + orchestrator wait contract |
+| Tool use & execution | Poll/heartbeat churn | normal multi-agent V1 wait contract + PreToolUse rewrite that raises short waits to 300 seconds |
+| Tool use & execution | Stale current-thread background terminal | base current-thread lifecycle rule + developer exec-session ownership contract + returned session identifier |
 | Code & contract correctness | Interface-shape mismatch | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | One-sided contract edit | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Partial implementation presented as complete | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
@@ -82,15 +84,19 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Root-cause avoidance | forge-debug/deliver root-cause repair + stop/completion contract |
 | Workflow & stopping | First-finding premature audit stop | forge-debug/review require exhausting stated audit criteria/scope |
 | Workflow & stopping | Simple-task overthinking | base narrow-first escalation + deliver/debug smallest-sufficient path |
+| Workflow & stopping | Reasoning loops from high effort | medium-first root/role defaults + explicit hard-tail escalation roles + bounded stop contracts |
 | Workflow & stopping | Audit recursion | base instructions + stop/completion contract |
 | Workflow & stopping | Failure-recovery blindness | base instructions + stop/completion contract |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
+| Workflow & stopping | Goal pause/block conflation | Codex 0.150.1 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear |
 | Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Duplicate multi-agent work | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Conflicting parallel edits | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Subagent authority overtrust | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Coordination overhead exceeds value | base instructions + PreToolUse spawn gate + child-role agent disablement |
 | Multi-agent & delegation | Unstructured model/session handoff | no-history fork + explicit objective/scope/oracle/stop handoff contract |
+| Multi-agent & delegation | V2 spawn hides model overrides and rejects the natural override call | pinned complete `model_catalog_json` restamps Forge slugs to V1; leave `features.multi_agent_v2` unset; registered V1 roles + `fork_context=false` |
+| Multi-agent & delegation | Integrated V1 agent left open | developer collect-integrate-close contract + V1 `close_agent`; completed agents otherwise retain concurrency slots |
 | Multi-agent & delegation | Weak-model blind audit | consequential/ambiguous audit remains Sol; Luna requires bounded criteria/oracle |
 | Skills, instructions & context | Applicable guidance ignored | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Ceremonial instruction reading | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
@@ -101,12 +107,15 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Skills, instructions & context | Instruction-file sprawl | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Context-file overload | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Prompt patch stacking | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
+| Skills, instructions & context | One observed failure widened into a universal prompt rule | record in observational-evidence; map here; keep the smallest Goal-slot wording; see model-instruction audit |
 | Memory, context & state | Stale or contaminated context | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Memory accumulation | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Context churn | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Recursive hallucination cascade | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Cross-thread continuity assumption | standard summary-backed compaction + compact handoff + base continuity rule; token-budget reset disabled by default; no implied memory from prior thread/model |
+| Memory, context & state | Remote catalog context-cap mismatch | complete pinned `model_catalog_json` for Forge-owned model behavior; local context overrides cannot claim to exceed a remote ceiling, so effective `/status` remains the runtime oracle |
 | Memory, context & state | Stale conclusion defense | evidence-conflict re-evaluation rule; newer verified evidence invalidates old hypothesis |
+| Upgrade lifecycle | Loaded session executes hooks from a replaced versioned plugin root | require all Codex sessions and the app server closed before plugin mutation/restamp; retain stale cache conservatively because installer lacks reliable cross-process liveness/lease evidence; cache retention is `UNVERIFIED` |
 | Security & privilege boundaries | Indirect prompt-injection obedience | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Security & privilege boundaries | Privilege propagation from untrusted content | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Security & privilege boundaries | Authorization bypass through tooling | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
@@ -126,8 +135,9 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Research & evaluation | Single-score blindness | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Research & evaluation | Cost/latency blindness | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Research & evaluation | One-run confidence | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
-| Performance & operational efficiency | Tool-call maximalism | bounded Code Mode batching + applicable forge-* skill; do not widen scope to fill a batch |
+| Performance & operational efficiency | Tool-call maximalism | bounded Code Mode batching + applicable forge-* skill; don't widen scope to fill a batch |
 | Performance & operational efficiency | Repeated context round-trip amplification | bounded batching, first-pass convergence, focused validation, bounded child handoffs |
 | Performance & operational efficiency | Search/read churn | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Performance & operational efficiency | Overbroad repository operations | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Performance & operational efficiency | Instruction/workflow accretion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
+| Performance & operational efficiency | Subscription quota spikes | model/effort routing: Luna/Terra for routine work, medium-first defaults, Sol and xhigh only for justified hard tails |

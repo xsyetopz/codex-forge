@@ -2,3 +2,5 @@ interface:
   display_name: "Forge Research"
   short_description: "Research current technical facts with provenance"
   default_prompt: "Use $forge-research to answer this question from current primary sources."
+policy:
+  allow_implicit_invocation: false

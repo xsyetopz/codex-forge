@@ -5,7 +5,7 @@ import { commandText, shellTokens } from "./shell-command.mjs";
 
 function advisory(command) {
 	const tokens = shellTokens(command);
-	if (!tokens.length) return null;
+	if (!tokens?.length) return null;
 	const values = tokens.map((item) => item.value);
 	const base = basename(values[0]);
 	if (base === "grep" && values.includes("-R"))
@@ -14,11 +14,6 @@ function advisory(command) {
 		return "Use `rg --files`/`fd`; use `codegraph_explore` for structural queries.";
 	if (base === "find" && values[1] === ".")
 		return "Bound the search or use `fd`; use `codegraph_explore` for structural queries.";
-	if (
-		["cat", "sed", "head", "tail"].includes(base) &&
-		values.slice(1).some((value) => value.endsWith("SKILL.md"))
-	)
-		return "Activate skills through native skill loading; reserve file reads for package inspection or unavailable native loading.";
 	return null;
 }
 

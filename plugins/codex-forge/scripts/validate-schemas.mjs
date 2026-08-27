@@ -125,7 +125,7 @@ function validateNode(value, schema, root, path = "$") {
 					...validateNode(item, properties[key], root, `${path}.${key}`),
 				);
 			else if (schema.additionalProperties === false)
-				errors.push(`${path}.${key}: additional property is not allowed`);
+				errors.push(`${path}.${key}: additional property isn't allowed`);
 			else if (
 				schema.additionalProperties &&
 				typeof schema.additionalProperties === "object"

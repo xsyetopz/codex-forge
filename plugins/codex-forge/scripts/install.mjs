@@ -15,12 +15,21 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TOML } from "bun";
-import { mergeConfig, stripManaged } from "./installer/config.mjs";
+import {
+	forgeCatalogSatisfiesContract,
+	forgeCatalogTarget,
+} from "./installer/catalog.mjs";
+import {
+	mergeConfig,
+	resolveMaxConcurrentThreads,
+	stripManaged,
+} from "./installer/config.mjs";
 import {
 	fileSha,
 	installFiles,
 	revertFiles,
 	uninstallFiles,
+	validateInstallationState,
 } from "./installer/files.mjs";
 import { which } from "./lib/process.mjs";
 
@@ -50,17 +59,18 @@ function cachedInstalls(home) {
 }
 
 function purgeCachedInstalls(home, keepVersion) {
-	const removed = [];
-	for (const path of cachedInstalls(home)) {
-		if (keepVersion !== null && basename(path) === keepVersion) continue;
-		rmSync(path, { recursive: true, force: true });
-		removed.push(path);
-		for (const parent of [dirname(path), dirname(dirname(path))])
-			try {
-				rmdirSync(parent);
-			} catch {}
+	const candidates = cachedInstalls(home).filter(
+		(path) => keepVersion === null || basename(path) !== keepVersion,
+	);
+	if (candidates.length) {
+		process.stderr.write(
+			"[cf] cache purge deferred: cross-process cache ownership is UNVERIFIED; close every Codex session and the app server, then confirm upstream cache retention externally\n",
+		);
 	}
-	return removed;
+	// The installer has no reliable cross-process liveness or lease evidence.
+	// Caller-provided session/thread IDs only describe this process and cannot
+	// prove that another session has stopped using a cached plugin root.
+	return [];
 }
 
 function pluginSelectors(configPath, { activeOnly = false } = {}) {
@@ -150,6 +160,15 @@ async function install(options) {
 		: "";
 	const statePath = join(home, "forge", "install-state.json");
 	const priorState = readJson(statePath);
+	validateInstallationState(home, priorState);
+	const priorConfigUnchanged =
+		Object.keys(priorState).length > 0 &&
+		sha(current) === priorState.config_after_sha256;
+	const priorBackup = priorState.backup
+		? join(priorState.backup, "config.toml")
+		: "";
+	const hasRestorablePriorConfig =
+		priorConfigUnchanged && Boolean(priorBackup) && existsSync(priorBackup);
 	const old = originalConfig(current, priorState);
 	try {
 		if (old.trim()) TOML.parse(old);
@@ -166,10 +185,20 @@ async function install(options) {
 	const mappings = installFiles(home, PLUGIN_ROOT, backup, priorState, {
 		force: options.replace,
 	});
-	const [updated, createdTables] = mergeConfig(old, home, PLUGIN_ROOT);
+	const preserveFrom = hasRestorablePriorConfig ? old : current;
+	const maxConcurrentThreads =
+		priorConfigUnchanged &&
+		Number.isInteger(priorState.max_concurrent_threads_per_session)
+			? priorState.max_concurrent_threads_per_session
+			: resolveMaxConcurrentThreads(preserveFrom);
+	const [updated, createdTables] = mergeConfig(old, home, PLUGIN_ROOT, {
+		preserveFrom,
+		maxConcurrentThreads,
+	});
 	writeFileSync(configPath, updated);
 	const state = {
 		plugin_version: pluginManifest().version,
+		max_concurrent_threads_per_session: maxConcurrentThreads,
 		installed_at: Date.now() / 1000,
 		backup,
 		config_before_sha256: sha(old),
@@ -202,6 +231,7 @@ async function uninstall(options) {
 	const configPath = join(home, "config.toml");
 	const statePath = join(home, "forge", "install-state.json");
 	const state = readJson(statePath);
+	validateInstallationState(home, state);
 	const current = existsSync(configPath)
 		? readFileSync(configPath, "utf8")
 		: "";
@@ -229,7 +259,10 @@ async function uninstall(options) {
 	if (options.purge) {
 		pluginsRemoved = await removePluginInstallations(home, configPath);
 		purgeCachedInstalls(home, null);
-		rmSync(join(home, "forge"), { recursive: true, force: true });
+		rmSync(join(home, "forge", "backups"), { recursive: true, force: true });
+		try {
+			rmdirSync(join(home, "forge"));
+		} catch {}
 	}
 	console.log("[cf] uninstalled user-level Forge configuration");
 	if (!pluginsRemoved) {
@@ -241,13 +274,14 @@ async function uninstall(options) {
 	return 0;
 }
 
-function revert() {
+async function revert() {
 	const statePath = join(codexHome(), "forge", "install-state.json");
 	if (!existsSync(statePath)) {
 		process.stderr.write("[cf] no Forge installation state found\n");
 		return 1;
 	}
 	const state = readJson(statePath);
+	validateInstallationState(codexHome(), state);
 	const mappings = state.file_mappings ?? [];
 	if (!mappings.length) {
 		process.stderr.write(
@@ -257,7 +291,7 @@ function revert() {
 	}
 	let count;
 	try {
-		count = revertFiles(PLUGIN_ROOT, mappings);
+		count = revertFiles(codexHome(), PLUGIN_ROOT, mappings);
 	} catch (error) {
 		process.stderr.write(`[cf] ${error.message}\n`);
 		return 2;
@@ -283,24 +317,69 @@ async function doctor(options) {
 	} catch {
 		parsed = false;
 	}
+	const managedFileMatches = (source, target) =>
+		existsSync(target) && fileSha(source) === fileSha(target);
+	const roleNames = readdirSync(join(PLUGIN_ROOT, "agents"))
+		.filter((name) => /^forge-.*\.toml$/.test(name))
+		.sort();
+	const mappingByTarget = new Map(
+		(state.file_mappings ?? []).map((item) => [item.target, item]),
+	);
+	const installedMappingMatches = (target) => {
+		const mapping = mappingByTarget.get(target);
+		return (
+			mapping &&
+			existsSync(target) &&
+			fileSha(target) === mapping.installed_sha256
+		);
+	};
 	const checks = {
 		config:
 			existsSync(configPath) &&
 			readFileSync(configPath, "utf8").includes("codex-forge:root"),
 		config_toml: parsed,
-		hooks_enabled: parsedConfig.features?.hooks === true,
+		hooks_enabled: parsedConfig.features?.hooks !== false,
 		plugin_registered:
 			pluginSelectors(configPath, { activeOnly: true }).length > 0,
-		model_instructions: existsSync(
-			join(home, "forge", "model-instructions.md"),
+		developer_instructions:
+			typeof parsedConfig.developer_instructions === "string" &&
+			parsedConfig.developer_instructions ===
+				readFileSync(
+					join(PLUGIN_ROOT, "assets", "developer-instructions.txt"),
+					"utf8",
+				).trim(),
+		model_instructions:
+			typeof parsedConfig.model_instructions_file === "string" &&
+			parsedConfig.model_instructions_file ===
+				join(home, "forge", "model-instructions.md") &&
+			existsSync(join(home, "forge", "model-instructions.md")) &&
+			fileSha(join(home, "forge", "model-instructions.md")) ===
+				fileSha(join(PLUGIN_ROOT, "assets", "model-instructions.md")),
+		compact_prompt: managedFileMatches(
+			join(PLUGIN_ROOT, "assets", "compact-prompt.md"),
+			join(home, "forge", "compact-prompt.md"),
 		),
-		compact_prompt: existsSync(join(home, "forge", "compact-prompt.md")),
-		rules: existsSync(join(home, "rules", "forge.rules")),
+		rules: managedFileMatches(
+			join(PLUGIN_ROOT, "assets", "forge.rules"),
+			join(home, "rules", "forge.rules"),
+		),
 		agent_roles:
-			existsSync(join(home, "agents")) &&
-			readdirSync(join(home, "agents")).filter((name) =>
-				/^forge-.*\.toml$/.test(name),
-			).length >= 9,
+			roleNames.length === 9 &&
+			roleNames.every((name) =>
+				managedFileMatches(
+					join(PLUGIN_ROOT, "agents", name),
+					join(home, "agents", name),
+				),
+			),
+		model_catalog:
+			typeof parsedConfig.model_catalog_json === "string" &&
+			parsedConfig.model_catalog_json === forgeCatalogTarget(home) &&
+			forgeCatalogSatisfiesContract(forgeCatalogTarget(home)) &&
+			managedFileMatches(
+				join(PLUGIN_ROOT, "assets", "model-catalog.json"),
+				forgeCatalogTarget(home),
+			) &&
+			installedMappingMatches(forgeCatalogTarget(home)),
 	};
 	const mappings = state.file_mappings ?? [];
 	const overrides = [];
@@ -331,6 +410,11 @@ async function doctor(options) {
 		stale_cache_versions: cacheVersions.filter(
 			(version) => version !== sourceVersion,
 		),
+		cache_retention: {
+			status: "UNVERIFIED",
+			reason:
+				"Codex can retain versioned plugin roots for other sessions; Forge cannot prove cross-process path ownership",
+		},
 		plugin_selectors: pluginSelectors(configPath, { activeOnly: true }),
 		configured_plugin_selectors: pluginSelectors(configPath),
 		hook_trust: {
@@ -350,6 +434,9 @@ async function doctor(options) {
 	console.log(`local overrides: ${overrides.length}`);
 	console.log(
 		`stale cached installs: ${diagnosis.stale_cache_versions.length}`,
+	);
+	console.log(
+		`cache retention: ${diagnosis.cache_retention.status} (${diagnosis.cache_retention.reason})`,
 	);
 	console.log(
 		"hook trust: UNVERIFIED (manual /hooks review and trust required; installer cannot inspect or grant trust)",
@@ -396,7 +483,14 @@ export async function main(arguments_ = process.argv.slice(2)) {
 		);
 		return 2;
 	}
-	return { install, uninstall, revert, doctor }[options.command](options);
+	try {
+		return await { install, uninstall, revert, doctor }[options.command](
+			options,
+		);
+	} catch (error) {
+		process.stderr.write(`[cf] ${error.message}\n`);
+		return 2;
+	}
 }
 
 if (import.meta.main) process.exit(await main());

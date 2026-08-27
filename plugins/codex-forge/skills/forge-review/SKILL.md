@@ -1,6 +1,6 @@
 ---
 name: forge-review
-description: Use this skill when reviewing a candidate code change, designing or repairing tests, or verifying visible UI behavior against explicit acceptance criteria. Route authorized implementation to delivery and unknown failures to debug.
+description: Explicit `$forge-review` workflow for candidate changes, test design or repair, and visible UI verification.
 license: MIT
 ---
 

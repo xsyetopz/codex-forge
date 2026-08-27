@@ -2,3 +2,5 @@ interface:
   display_name: "Forge Setup"
   short_description: "Install, repair, inspect, or remove Codex Forge"
   default_prompt: "Use $forge-setup to manage this Codex Forge installation."
+policy:
+  allow_implicit_invocation: false

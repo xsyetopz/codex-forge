@@ -1,13 +1,45 @@
 # Safe local inspection and build commands are allowed without an approval prompt.
 prefix_rule(pattern=[[
   "pwd","ls","rg","fd","cat","head","tail","sed","awk","wc","sort","uniq","cut","tr",
-  "stat","file","realpath","dirname","basename","printf","echo","mkdir","cp","mv","touch",
-  "rmdir"
+  "stat","file","realpath","dirname","basename","printf","echo","jq","shasum","cksum","md5",
+  "diff","cmp","codegraph","mkdir","cp","mv","touch","rmdir"
 ]], decision="allow", justification="[cf] Ordinary local inspection/edit support command.")
-prefix_rule(pattern=[[
-  "python","python3","node","deno","bun","pytest","ruff","mypy","uv","cmake","make","ninja",
-  "go","rustc"
-]], decision="allow", justification="[cf] Ordinary local build/test/tool command.")
+
+# Interpreters stay scoped to validation entrypoints. A tool-wide interpreter allow would also
+# authorize inline programs and arbitrary scripts outside the workspace because allow rules can
+# bypass the filesystem sandbox.
+prefix_rule(pattern=["bun","test"], decision="allow", justification="[cf] Bun test execution is routine local validation.")
+prefix_rule(pattern=["bun","run",[
+  "test","test:isolated","validate:schemas","validate:skills","benchmark:deepswe"
+]], decision="allow", justification="[cf] Forge-owned Bun validation script.")
+prefix_rule(pattern=["bun","plugins/codex-forge/scripts/validate-schemas.mjs"], decision="allow", justification="[cf] Forge schema validation.")
+prefix_rule(pattern=["bun","plugins/codex-forge/skills/forge-skill-creator/scripts/check-skill.mjs"], decision="allow", justification="[cf] Forge skill validation.")
+prefix_rule(pattern=["bun","tests/test-isolated-runtime.mjs"], decision="allow", justification="[cf] Forge isolated-runtime validation.")
+prefix_rule(pattern=["bun",[
+  "benchmarks/deepswe/run-matrix.mjs","benchmarks/deepswe/summarize.mjs","benchmarks/deepswe/cleanup-job.mjs"
+]], decision="allow", justification="[cf] Bounded Forge DeepSWE execution, summary, or owned-container cleanup.")
+prefix_rule(pattern=["bunx","biome",["check","format","lint"]], decision="allow", justification="[cf] Biome repository validation or formatting.")
+prefix_rule(pattern=["node","--test"], decision="allow", justification="[cf] Node test execution is routine local validation.")
+prefix_rule(pattern=["deno",["test","check","lint","fmt"]], decision="allow", justification="[cf] Deno validation or formatting.")
+prefix_rule(pattern=["pytest"], decision="allow", justification="[cf] Python test execution is routine local validation.")
+prefix_rule(pattern=["ruff",["check","format"]], decision="allow", justification="[cf] Ruff validation or formatting.")
+prefix_rule(pattern=["mypy"], decision="allow", justification="[cf] Python type validation.")
+prefix_rule(pattern=["uv",["sync","lock","tree"]], decision="allow", justification="[cf] Python dependency validation.")
+prefix_rule(pattern=["cmake",["--build","--workflow"]], decision="allow", justification="[cf] CMake project build or validation.")
+prefix_rule(pattern=[["make","ninja"]], decision="allow", justification="[cf] Project-owned local build or validation target.")
+prefix_rule(pattern=["go",["test","build","vet","fmt","list"]], decision="allow", justification="[cf] Go build, test, or validation command.")
+prefix_rule(pattern=["rustc"], decision="allow", justification="[cf] Rust compiler validation.")
+prefix_rule(pattern=["swift",["test","build","package"]], decision="allow", justification="[cf] Swift build or test command.")
+prefix_rule(pattern=["swift-format",["lint","format"]], decision="allow", justification="[cf] Swift formatting validation or application.")
+prefix_rule(pattern=["dotnet",["test","build","format"]], decision="allow", justification="[cf] .NET build or test command.")
+prefix_rule(pattern=[["mvn","mvnw","./mvnw"],["test","verify","package"]], decision="allow", justification="[cf] Maven build or test command.")
+prefix_rule(pattern=[["gradle","gradlew","./gradlew"],["test","check","build"]], decision="allow", justification="[cf] Gradle build or test command.")
+
+# Stock Codex 0.149.1 lowers simple shell command strings before evaluating rules. Complex shell
+# strings can fall back to the outer wrapper as one opaque token, which cannot be constrained by
+# command-family prefixes. Keep that fallback approval-sensitive; direct validation calls match
+# the categorical rules above without granting arbitrary shell-string execution.
+prefix_rule(pattern=[["/bin/zsh","zsh","/bin/bash","bash","/bin/sh","sh"],["-c","-lc"]], decision="prompt", justification="[cf] Confirm an opaque shell command string; invoke routine validation commands directly.")
 
 # Git allows only read/status and non-destructive inspection prefixes. Do not add a broad `git`
 # allow: it would mask later destructive subcommands and global-option forms.
@@ -19,7 +51,7 @@ prefix_rule(pattern=["git","rev-parse"], decision="allow", justification="[cf] L
 prefix_rule(pattern=["git","ls-files"], decision="allow", justification="[cf] Local Git file inspection is safe.")
 prefix_rule(pattern=["git","grep"], decision="allow", justification="[cf] Local Git content inspection is safe.")
 prefix_rule(pattern=["git","blame"], decision="allow", justification="[cf] Local Git history inspection is safe.")
-prefix_rule(pattern=["git","clean",["-n","--dry-run"]], decision="allow", justification="[cf] Git clean dry-run does not mutate the worktree.")
+prefix_rule(pattern=["git","clean",["-n","--dry-run"]], decision="allow", justification="[cf] Git clean dry-run doesn't mutate the worktree.")
 
 # Package/build commands are narrow so publication never inherits a tool-wide allow.
 prefix_rule(pattern=["cargo",["check","test","build","fmt","clippy","metadata","tree"]], decision="allow", justification="[cf] Ordinary local Cargo build/test command.")
@@ -29,7 +61,7 @@ prefix_rule(pattern=["yarn",["test","run","install","pack"]], decision="allow", 
 
 # Common separated workspace/global-option spellings are explicit prompt
 # boundaries. Execpolicy prefix rules match literal tokens and have no wildcard
-# form, so attached/equal values remain unmatched (and therefore do not inherit
+# form, so attached/equal values remain unmatched (and therefore don't inherit
 # a safe direct allow) unless a bounded literal is added deliberately.
 prefix_rule(pattern=["npm",["--workspace","--prefix","-w"]], decision="prompt", justification="[cf] Confirm npm workspace-scoped publication or lifecycle.")
 prefix_rule(pattern=["pnpm",["--filter","--dir","-C"]], decision="prompt", justification="[cf] Confirm pnpm workspace-scoped publication or lifecycle.")
@@ -57,6 +89,12 @@ prefix_rule(pattern=["gh","release",["create","delete","edit","upload"]], decisi
 prefix_rule(pattern=["npm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
 prefix_rule(pattern=["pnpm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
 prefix_rule(pattern=["yarn","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["bun","publish"], decision="prompt", justification="[cf] Confirm package publication.")
+prefix_rule(pattern=["bun","run",["publish","release","deploy"]], decision="prompt", justification="[cf] Confirm package publication or deployment lifecycle.")
+prefix_rule(pattern=["cmake","--install"], decision="prompt", justification="[cf] Confirm installation outside the build tree.")
+prefix_rule(pattern=[["make","ninja"],["install","publish","release","deploy"]], decision="prompt", justification="[cf] Confirm installation, publication, or deployment lifecycle.")
+prefix_rule(pattern=[["mvn","mvnw","./mvnw"],"deploy"], decision="prompt", justification="[cf] Confirm Maven publication.")
+prefix_rule(pattern=[["gradle","gradlew","./gradlew"],["publish","uploadArchives"]], decision="prompt", justification="[cf] Confirm Gradle publication.")
 prefix_rule(pattern=["yarn","npm","publish"], decision="prompt", justification="[cf] Confirm package publication.")
 prefix_rule(pattern=["npm","exec","--","npm","publish"], decision="prompt", justification="[cf] Confirm package publication through npm exec.")
 prefix_rule(pattern=["pnpm","exec","npm","publish"], decision="prompt", justification="[cf] Confirm package publication through pnpm exec.")

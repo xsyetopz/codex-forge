@@ -2,3 +2,5 @@ interface:
   display_name: "Forge Review"
   short_description: "Review code, tests, and visible UI behavior"
   default_prompt: "Use $forge-review to verify this candidate against its acceptance criteria."
+policy:
+  allow_implicit_invocation: false

@@ -2,3 +2,5 @@ interface:
   display_name: "Forge Debug"
   short_description: "Diagnose correctness and performance failures"
   default_prompt: "Use $forge-debug to find and verify the root cause."
+policy:
+  allow_implicit_invocation: false

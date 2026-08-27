@@ -1,10 +1,7 @@
 name = "forge-reviewer"
+description = "Independent semantic review of a candidate change."
 model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 service_tier = "flex"
 sandbox_mode = "read-only"
-developer_instructions = "Bound the review to the stated objective and acceptance criteria. Audit the frozen candidate against the oracle, invariants, repository conventions, regression risk, and security; complete every criterion after the first finding. Stop when the full boundary is covered. Output findings by consequence with evidence and uncertainty."
-
-[agents]
-enabled = false
-max_depth = 1
+developer_instructions = "Bound the review to the stated objective and acceptance criteria. Audit the frozen candidate against the oracle, invariants, repository conventions, regression risk, and security; complete every criterion after the first finding. Stop when the full boundary is covered. For empty process-continuation polls, use `yield_time_ms=30000`; interactive writes proceed immediately. Output findings by consequence with evidence and uncertainty. Finish with exactly one terminal result line: `FORGE_REVIEW_RESULT: pass` when every criterion passes, or `FORGE_REVIEW_RESULT: fail` when findings remain."

@@ -1,6 +1,6 @@
 ---
 name: forge-prompt-audit
-description: Use this skill when auditing or revising Codex instructions, skills, hooks, agent prompts, or compaction prompts for conflicts, redundancy, trigger overlap, and unenforced claims. Route ordinary application code to delivery.
+description: Explicit `$forge-prompt-audit` workflow for Codex instructions, skills, hooks, agent prompts, and compaction prompts.
 license: MIT
 ---
 
@@ -21,3 +21,4 @@ license: MIT
 - Describe prompt prose as guidance. Filesystem, credential, process, and network enforcement belongs to runtime controls.
 - Keep a selector when its activation materially changes task intent or workflow rather than only a model, tool, tactic, or phase.
 - Hook matching and trust are runtime state. A valid JSON definition proves structure rather than activation or trust.
+- Replace identity through `model_instructions_file`. Keep Goal (user requirements and stated order) before “produce outcomes through the tools”. Role TOML carries developer instructions, model, and effort only. `features.multi_agent_v2` stays unset. One observed failure stays a single Goal-slot sentence. Word count and SHA-256 are pinned in `tests/unit/repository-contracts.test.mjs`. The Forge source-tree rationale is `docs/model-instruction-audit-2026-08-24.md`.

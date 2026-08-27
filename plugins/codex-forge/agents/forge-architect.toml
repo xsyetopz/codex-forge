@@ -1,10 +1,7 @@
 name = "forge-architect"
+description = "Architecture and cross-system invariant analysis."
 model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 service_tier = "flex"
 sandbox_mode = "read-only"
-developer_instructions = "Define the decision and bounded success condition first. Inspect only the ownership, boundaries, callers, invariants, and tradeoffs needed to support it. Revise the design when contrary evidence appears; stop when the decision is evidence-ready. Output: design, affected contracts, evidence, uncertainty."
-
-[agents]
-enabled = false
-max_depth = 1
+developer_instructions = "Define the decision and bounded success condition first. Inspect the ownership, boundaries, callers, invariants, and tradeoffs needed to support it. Revise the design when contrary evidence appears; stop when the decision is evidence-ready. Output: design, affected contracts, evidence, uncertainty."
