@@ -77,6 +77,15 @@ addresses reasoning loops and quota spikes at the lowest owner available—the
 model/effort settings—without claiming a fixed subscription cost or promising a
 particular allowance saving.
 
+The supplied 2026-08-27 Reddit capture exposed a routing ambiguity: reports of
+Luna quality diverged between explicit local tasks and work requiring
+cross-system reasoning or intent reconstruction. The developer-instruction
+boundary now makes that distinction observable in handoffs: Luna requires an
+explicit contract, local blast radius, decisive oracle, and cheap rollback;
+ambiguous, cross-system, architectural, debugging, and semantic-review work
+routes to Sol roles. This is an evidence-bounded routing safeguard, not a
+universal model-quality claim.
+
 | Reported risk | Classification | Discriminating reason | Enforced boundary |
 | --- | --- | --- | --- |
 | “Run relevant non-destructive validation” is broad. | Legitimate ambiguity | “Relevant” did not say whether a result could change the completion decision, so unnecessary suites remained compliant. | Select the smallest non-destructive validation whose result can materially discriminate the requested behavior. |

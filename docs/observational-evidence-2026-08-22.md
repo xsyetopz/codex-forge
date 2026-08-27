@@ -39,6 +39,26 @@ Upstream Codex 0.149.0 facts used here:
 | Stated check-before-use order inverted: user required a CLI-surface check, agent invoked the binary first with `--version`, launched a GUI, then apologized | Forge-user report on a current installed Forge session (PCSX2 2.6.3) | base instructions: keep the user’s stated order in the Goal slot before “produce outcomes through the tools”, matching GPT-5.6 Role→Goal→Success→Constraints→Tools→Output→Stop |
 | Large advertised token-saving percentages often shrink under full-session measurement | controlled benchmark reports | performance/research rules require matched workload and full-session outcome/cost, not payload-only claims |
 
+### Supplied Reddit capture (2026-08-27)
+
+The supplied capture reports a task-shape distinction rather than a universal
+Luna capability claim: Luna reports are strongest for explicit, tightly scoped,
+locally verifiable implementation; reports become negative when the task
+requires ambiguity resolution, cross-system reasoning, architecture, or
+semantic review. The repository copy under `docs/reddit/` was the same capture
+with whitespace-only differences (Downloads SHA-256
+`323769b45272e61b592ffa4e625c552f26aad1ba1487bf8f553eba10d59db949`;
+repository-copy SHA-256 `9e60857cc71a8f71a40a8c5699e646e758c9b1557c72d960fcb1268529832ab2`).
+It was an unexplained local duplicate, so
+the raw copy is removed; the supplied Downloads file remains unchanged.
+
+Forge response: make acceptance-surface routing explicit at the developer
+instruction boundary. Luna roles require an explicit contract, local blast
+radius, decisive oracle, and cheap rollback; Sol architecture, debugger, and
+reviewer roles own ambiguous, cross-system, and intent-reconstructing work.
+This is a routing safeguard, not a measured claim about model quality or quota
+savings.
+
 ## Deliberately not adopted
 
 Forge doesn't hard-code a universal cache TTL, quota multiplier, cache-bump interval, or claimed percentage saving. It doesn't route every implementation to Luna, every retrieval to an indexer, or every task to subagents. It doesn't lower `tool_output_token_limit` globally without a measured workload because truncation can remove decisive evidence. It doesn't assume high cache-hit percentage means low total usage; repeated context can still dominate aggregate traffic.

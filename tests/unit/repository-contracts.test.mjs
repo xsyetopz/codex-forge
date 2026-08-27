@@ -142,6 +142,7 @@ test("model instructions stay lean and preserve unique base invariants", () => {
 		"Codex Forge is active",
 		"User-supplied `$forge-*` selectors activate their skills through Codex",
 		"Root orchestration governs engineering work",
+		"Acceptance-surface routing: use Luna roles for explicit contracts, local blast radius, decisive oracles, and cheap rollback; use Sol architecture, debugger, or reviewer roles for ambiguous requirements, cross-system changes, or semantic review that reconstructs intent.",
 		"for a bounded repository change with explicit acceptance criteria",
 		"assign one `forge-worker` the task statement and checkout as its complete workstream for reconnaissance and implementation",
 		"pass the acceptance criteria and worker evidence to one active `forge-reviewer` for a first focused pass covering the full acceptance set",

@@ -115,6 +115,11 @@ tails. The bounded-change flow uses one worker followed by one reviewer;
 parallel writers require disjoint ownership, and Forge children stay at one
 depth.
 
+Route by acceptance surface rather than task count: Luna roles fit explicit
+contracts with local blast radius, decisive oracles, and cheap rollback. Use
+Sol architecture, debugger, or reviewer roles when requirements are ambiguous,
+changes cross system boundaries, or semantic review must reconstruct intent.
+
 Codex's default-on `multi_agent` and `hooks` features remain active, so Forge
 leaves those keys at their native defaults rather than redundantly configuring
 them. `features.multi_agent_v2` stays unset: the flag is stable and disabled by

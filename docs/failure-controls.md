@@ -97,7 +97,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Multi-agent & delegation | Unstructured model/session handoff | no-history fork + explicit objective/scope/oracle/stop handoff contract |
 | Multi-agent & delegation | V2 spawn hides model overrides and rejects the natural override call | pinned complete `model_catalog_json` restamps Forge slugs to V1; leave `features.multi_agent_v2` unset; registered V1 roles + `fork_context=false` |
 | Multi-agent & delegation | Integrated V1 agent left open | developer collect-integrate-close contract + V1 `close_agent`; completed agents otherwise retain concurrency slots |
-| Multi-agent & delegation | Weak-model blind audit | consequential/ambiguous audit remains Sol; Luna requires bounded criteria/oracle |
+| Multi-agent & delegation | Weak-model blind audit | acceptance-surface routing: Luna requires an explicit contract, local blast radius, decisive oracle, and cheap rollback; consequential, ambiguous, cross-system, or intent-reconstructing work remains with Sol roles |
 | Skills, instructions & context | Applicable guidance ignored | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Ceremonial instruction reading | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Instruction decay | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
