@@ -1,19 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-	chmodSync,
 	existsSync,
-	lstatSync,
 	mkdirSync,
 	mkdtempSync,
-	readdirSync,
 	readFileSync,
-	readlinkSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { TOML } from "bun";
+import { parseManagedConfig } from "../../../plugins/codex-forge/scripts/installer/owners/config.mjs";
 
 const ROOT = resolve(import.meta.dir, "../../..");
 const temporary = [];
@@ -37,82 +34,6 @@ function install(home, ...args) {
 	return runInstaller(home, args);
 }
 
-function _fakeCodex(
-	root,
-	{
-		installed = true,
-		marketplace = true,
-		fail = "",
-		failBun = "",
-		codexVersion = "0.151.0",
-		entry,
-		pluginListOutput,
-	} = {},
-) {
-	const bin = join(root, "bin");
-	mkdirSync(bin);
-	const path = join(bin, "codex");
-	const installedJson =
-		pluginListOutput ??
-		(installed
-			? JSON.stringify({
-					installed: [
-						entry ?? {
-							pluginId: "codex-forge@codex-forge",
-							name: "codex-forge",
-							marketplaceName: "codex-forge",
-						},
-					],
-				})
-			: '{"installed":[]}');
-	const marketplaceText = marketplace
-		? "codex-forge  /checkout"
-		: "other  /checkout";
-	writeFileSync(
-		path,
-		`#!/bin/sh
-printf 'codex %s\\n' "$*" >> "$CODEX_REINSTALL_LOG"
-if [ "$*" = "plugin list --json" ]; then printf '%s\\n' '${installedJson}'; fi
-if [ "$*" = "plugin marketplace list" ]; then printf '%s\\n' '${marketplaceText}'; fi
-if [ "$*" = "--version" ]; then printf 'codex %s\\n' '${codexVersion}'; fi
-${fail ? `case "$*" in "${fail}"*) exit 7 ;; esac` : ""}
-exit 0
-`,
-	);
-	chmodSync(path, 0o755);
-	const bun = join(bin, "bun");
-	writeFileSync(
-		bun,
-		`#!/bin/sh
-printf 'bun %s\\n' "$*" >> "$CODEX_REINSTALL_LOG"
-${failBun ? `case "$*" in *"${failBun}"*) exit 7 ;; esac` : ""}
-exec ${process.execPath} "$@"
-`,
-	);
-	chmodSync(bun, 0o755);
-	return { bin, bun, log: join(root, "codex.log") };
-}
-
-function _snapshotTree(root) {
-	const result = {};
-	const visit = (path) => {
-		const name = relative(root, path) || ".";
-		const stat = lstatSync(path);
-		if (stat.isSymbolicLink())
-			result[name] = { type: "symlink", target: readlinkSync(path) };
-		else if (stat.isDirectory()) {
-			result[name] = { type: "directory" };
-			for (const child of readdirSync(path)) visit(join(path, child));
-		} else
-			result[name] = {
-				type: "file",
-				bytes: readFileSync(path).toString("base64"),
-			};
-	};
-	visit(root);
-	return result;
-}
-
 function runInstaller(home, args, extraEnvironment = {}) {
 	return Bun.spawnSync(["bun", join(ROOT, "install.mjs"), ...args], {
 		env: {
@@ -128,6 +49,61 @@ function runInstaller(home, args, extraEnvironment = {}) {
 }
 
 describe("installer lifecycle", () => {
+	test("installer developer instructions round-trip through the repository TOML parser", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const parsed = TOML.parse(readFileSync(join(home, "config.toml"), "utf8"));
+		const source = readFileSync(
+			join(ROOT, "plugins/codex-forge/assets/developer-instructions.txt"),
+			"utf8",
+		).trim();
+		expect(parsed.developer_instructions).toBe(source);
+	});
+
+	test("config marker parser rejects malformed ownership shapes", () => {
+		for (const value of [
+			"# >>> codex-forge >>>\n# >>> codex-forge >>>\n# <<< codex-forge <<<\n",
+			"# <<< codex-forge <<<\n# >>> codex-forge >>>\n",
+			"# >>> codex-forge >>>x\n",
+			"# >>> codex-forge >>>\nuser\n",
+			"# >>> codex-forge >>>\n# <<< codex-forge <<<\n# <<< codex-forge <<<\n",
+		])
+			expect(() => parseManagedConfig(value)).toThrow();
+		expect(() =>
+			parseManagedConfig("foo = true\n", { requirePresent: true }),
+		).toThrow();
+	});
+	test("public lifecycle refuses duplicate, missing, and unknown config scopes", () => {
+		for (const mutate of [
+			(value) =>
+				value.replace(
+					/(\[agents\]\n)(# >>> codex-forge >>>[\s\S]*?# <<< codex-forge <<<\n)/m,
+					"$1$2$2",
+				),
+			(value) =>
+				value.replace(
+					/(\[features\]\n)# >>> codex-forge >>>[\s\S]*?# <<< codex-forge <<<\n/m,
+					"$1",
+				),
+			(value) =>
+				value.replace(
+					"[features]\n# >>> codex-forge >>>",
+					"[unknown]\n# >>> codex-forge >>>",
+				),
+		]) {
+			const { home } = fixture();
+			expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+			const configPath = join(home, "config.toml");
+			const original = readFileSync(configPath, "utf8");
+			const mutated = mutate(original);
+			expect(mutated).not.toBe(original);
+			expect(
+				(mutated.match(/# >>> codex-forge >>>/g) ?? []).length,
+			).toBeGreaterThan(0);
+			writeFileSync(configPath, mutated);
+			expect(install(home, "install", "--no-tools").exitCode).toBe(2);
+		}
+	});
 	test("rejects forged inserted-prefix state without mutating uninstall or revert", () => {
 		const { home } = fixture();
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
@@ -159,8 +135,14 @@ describe("installer lifecycle", () => {
 		expect(readFileSync(target)).toEqual(agentsBefore);
 	});
 	test("migrates a prior Forge-managed default cap from 3 to 8", () => {
-		const { home } = fixture(
-			'[agents]\n# >>> codex-forge:agents >>>\ndefault_subagent_model = "gpt-5.6-luna"\ndefault_subagent_reasoning_effort = "high"\nmax_concurrent_threads_per_session = 3\nmax_depth = 1\n# <<< codex-forge:agents <<<\n\n[plugins."codex-forge@test"]\nenabled = true\n',
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		writeFileSync(
+			join(home, "config.toml"),
+			readFileSync(join(home, "config.toml"), "utf8").replace(
+				"max_concurrent_threads_per_session = 8",
+				"max_concurrent_threads_per_session = 3",
+			),
 		);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		expect(
@@ -169,8 +151,14 @@ describe("installer lifecycle", () => {
 		).toBe(8);
 	});
 	test("preserves a customized cap inside a Forge-managed block", () => {
-		const { home } = fixture(
-			'[agents]\n# >>> codex-forge:agents >>>\ndefault_subagent_model = "gpt-5.6-luna"\ndefault_subagent_reasoning_effort = "high"\nmax_concurrent_threads_per_session = 6\nmax_depth = 1\n# <<< codex-forge:agents <<<\n\n[plugins."codex-forge@test"]\nenabled = true\n',
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		writeFileSync(
+			join(home, "config.toml"),
+			readFileSync(join(home, "config.toml"), "utf8").replace(
+				"max_concurrent_threads_per_session = 8",
+				"max_concurrent_threads_per_session = 6",
+			),
 		);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		expect(
@@ -203,7 +191,7 @@ describe("installer lifecycle", () => {
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		const configPath = join(home, "config.toml");
 		const firstInstall = readFileSync(configPath, "utf8");
-		expect(firstInstall).toContain("# >>> codex-forge:table:agents >>>");
+		expect(firstInstall).toContain("# >>> codex-forge >>>");
 		expect(firstInstall).toContain("max_concurrent_threads_per_session = 8");
 		writeFileSync(
 			configPath,

@@ -13,6 +13,7 @@ import {
 	purgeCachedInstalls,
 	REQUIRED_CODEX_CLI_VERSION,
 } from "./owners/cache.mjs";
+import { parseManagedConfig } from "./owners/config.mjs";
 import { fileSha } from "./owners/files.mjs";
 import {
 	globalAgentsTarget,
@@ -38,10 +39,15 @@ async function doctor(options) {
 	if (options.purgeCache) purgeCachedInstalls(home, PLUGIN, sourceVersion);
 	let parsedConfig = {};
 	let parsed = true;
+	let managedConfig = { present: false };
 	try {
-		parsedConfig = existsSync(configPath)
-			? TOML.parse(readFileSync(configPath, "utf8"))
-			: {};
+		const configText = existsSync(configPath)
+			? readFileSync(configPath, "utf8")
+			: "";
+		parsedConfig = configText ? TOML.parse(configText) : {};
+		managedConfig = parseManagedConfig(configText, {
+			requirePresent: Boolean(state.config_after_sha256),
+		});
 	} catch {
 		parsed = false;
 	}
@@ -79,9 +85,7 @@ async function doctor(options) {
 	const checks = {
 		codex_cli_compatible: codexCli.compatible,
 		global_agents: globalAgentsStateValid,
-		config:
-			existsSync(configPath) &&
-			readFileSync(configPath, "utf8").includes("codex-forge:root"),
+		config: managedConfig.present,
 		config_toml: parsed,
 		hooks_enabled: parsedConfig.features?.hooks !== false,
 		plugin_registered:

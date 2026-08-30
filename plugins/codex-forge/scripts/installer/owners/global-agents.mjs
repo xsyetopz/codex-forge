@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileSha } from "./files.mjs";
+import { assertRegularFile } from "./transaction.mjs";
 
-const OPEN = "# >>> codex-forge:AGENTS.md >>>";
-const CLOSE = "# <<< codex-forge:AGENTS.md <<<";
-const TOKEN = "codex-forge:AGENTS.md";
+const OPEN = "<!-- CODEX_FORGE_START -->";
+const CLOSE = "<!-- CODEX_FORGE_END -->";
 const HASH = /^[0-9a-f]{64}$/;
 const hashText = (text) => createHash("sha256").update(text).digest("hex");
 export const globalAgentsTarget = (home) => join(home, "AGENTS.md");
@@ -23,12 +23,19 @@ export function parseGlobalAgents(text) {
 	}
 	const opens = lines.filter((line) => line.value === OPEN);
 	const closes = lines.filter((line) => line.value === CLOSE);
+	if (lines.some((line) => /^#\s*(?:>>>|<<<)\s*codex-forge\b/.test(line.value)))
+		throw new Error(
+			"global AGENTS.md contains legacy Forge marker-like content; refusing normal ownership parsing",
+		);
+	const comments = text.match(/<!--[\s\S]*?(?:-->|$)/g) ?? [];
 	if (
-		lines.some(
-			(line) =>
-				line.value.includes(TOKEN) &&
-				line.value !== OPEN &&
-				line.value !== CLOSE,
+		comments.some(
+			(comment) =>
+				comment.includes("CODEX_FORGE") &&
+				(!["<!-- CODEX_FORGE_START -->", "<!-- CODEX_FORGE_END -->"].includes(
+					comment,
+				) ||
+					!lines.some((line) => line.value === comment)),
 		)
 	)
 		throw new Error(
@@ -59,7 +66,7 @@ function sourceBlock(text) {
 	const parsed = parseGlobalAgents(text);
 	if (!parsed.present || parsed.before || parsed.after)
 		throw new Error(
-			"bundled global AGENTS source does not contain exactly one Forge block",
+			"bundled AGENTS patch does not contain exactly one Forge block",
 		);
 	return parsed.owned;
 }
@@ -109,7 +116,7 @@ export function validateGlobalAgentsState(home, item) {
 		);
 	if (
 		item.target !== globalAgentsTarget(home) ||
-		item.source !== "assets/global-AGENTS.md"
+		item.source !== "assets/AGENTS.md.patch"
 	)
 		throw new Error(
 			"installation state contains an unmanaged global AGENTS mapping",
@@ -130,6 +137,7 @@ export function validateGlobalAgentsState(home, item) {
 export function validateGlobalAgentsTarget(home, item) {
 	validateGlobalAgentsState(home, item);
 	const target = globalAgentsTarget(home);
+	assertRegularFile(target, "global AGENTS.md", home);
 	if (!existsSync(target))
 		throw new Error("global AGENTS.md is missing; refusing mutation");
 	const parsed = parseGlobalAgents(readFileSync(target, "utf8"));
@@ -145,8 +153,9 @@ export function installGlobalAgents(
 	priorState,
 	{ force = false } = {},
 ) {
-	const sourcePath = join(pluginRoot, "assets", "global-AGENTS.md");
+	const sourcePath = join(pluginRoot, "assets", "AGENTS.md.patch");
 	const target = globalAgentsTarget(home);
+	assertRegularFile(target, "global AGENTS.md", home);
 	const prior = priorState.global_agents;
 	if (prior) validateGlobalAgentsState(home, prior);
 	if (prior && !existsSync(target))
@@ -154,7 +163,7 @@ export function installGlobalAgents(
 			"global AGENTS.md is missing; refusing to recreate a previously managed target",
 		);
 	const hadTarget = existsSync(target);
-	const current = hadTarget ? readFileSync(target, "utf8") : "# AGENTS.md\n";
+	const current = hadTarget ? readFileSync(target, "utf8") : "# AGENTS.md\n\n";
 	const updated = replaceGlobalAgentsSection(
 		current,
 		readFileSync(sourcePath, "utf8"),
@@ -181,7 +190,6 @@ export function uninstallGlobalAgents(home, state, _options = {}) {
 	if (!item) return;
 	validateGlobalAgentsTarget(home, item);
 	const target = globalAgentsTarget(home);
-	if (!existsSync(target)) return;
 	const parsed = parseGlobalAgents(readFileSync(target, "utf8"));
 	const unmanaged = `${parsed.before}${parsed.after}`;
 	const candidateBefore =
@@ -194,7 +202,9 @@ export function uninstallGlobalAgents(home, state, _options = {}) {
 		: unmanaged;
 	if (
 		!item.previous_existed &&
-		(!restored.trim() || restored === "# AGENTS.md\n")
+		(!restored.trim() ||
+			restored === "# AGENTS.md\n" ||
+			restored === "# AGENTS.md\n\n")
 	)
 		rmSync(target, { force: true });
 	else writeFileSync(target, restored);
@@ -205,10 +215,6 @@ export function revertGlobalAgents(home, pluginRoot, state) {
 	if (!item) return false;
 	validateGlobalAgentsTarget(home, item);
 	const target = globalAgentsTarget(home);
-	if (!existsSync(target))
-		throw new Error(
-			"global AGENTS.md is missing; refusing to recreate or authorize revert mutation",
-		);
 	const parsed = parseGlobalAgents(readFileSync(target, "utf8"));
 	if (!parsed.present || parsed.owned_sha256 !== item.owned_sha256)
 		throw new Error(

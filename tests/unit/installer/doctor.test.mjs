@@ -128,6 +128,51 @@ function runInstaller(home, args, extraEnvironment = {}) {
 }
 
 describe("installer lifecycle", () => {
+	test("doctor does not accept a marker-like config comment as managed state", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		writeFileSync(
+			join(home, "config.toml"),
+			`${readFileSync(join(home, "config.toml"), "utf8")}# >>> codex-forge >>>x\n`,
+		);
+		const report = install(home, "doctor", "--json");
+		expect(report.exitCode).toBe(1);
+		const diagnosis = JSON.parse(report.stdout.toString());
+		expect(diagnosis.checks.config).toBe(false);
+	});
+	test("doctor rejects duplicate, missing, and unknown config scopes", () => {
+		for (const mutate of [
+			(value) =>
+				value.replace(
+					/(\[agents\]\n)(# >>> codex-forge >>>[\s\S]*?# <<< codex-forge <<<\n)/m,
+					"$1$2$2",
+				),
+			(value) =>
+				value.replace(
+					/(\[features\]\n)# >>> codex-forge >>>[\s\S]*?# <<< codex-forge <<<\n/m,
+					"$1",
+				),
+			(value) =>
+				value.replace(
+					"[features]\n# >>> codex-forge >>>",
+					"[unknown]\n# >>> codex-forge >>>",
+				),
+		]) {
+			const { home } = fixture();
+			expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+			const configPath = join(home, "config.toml");
+			const original = readFileSync(configPath, "utf8");
+			const mutated = mutate(original);
+			expect(mutated).not.toBe(original);
+			expect(
+				(mutated.match(/# >>> codex-forge >>>/g) ?? []).length,
+			).toBeGreaterThan(0);
+			writeFileSync(configPath, mutated);
+			const report = install(home, "doctor", "--json");
+			expect(report.exitCode).toBe(1);
+			expect(JSON.parse(report.stdout.toString()).checks.config).toBe(false);
+		}
+	});
 	test("rejects invalid TOML without creating state", () => {
 		const { home } = fixture("[broken\n");
 		const result = install(home, "install", "--no-tools");

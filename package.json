@@ -8,6 +8,9 @@
 		"test": "bun test tests/unit",
 		"test:isolated": "bun tests/test-isolated-runtime.mjs",
 		"validate:schemas": "bun plugins/codex-forge/scripts/validate-schemas.mjs",
+		"benchmark:package": "bun plugins/codex-forge/scripts/benchmark/package.mjs",
+		"benchmark:matrix": "bun plugins/codex-forge/scripts/benchmark/launch-matrix.mjs",
+		"benchmark:preflight": "bun plugins/codex-forge/scripts/benchmark/preflight.mjs",
 		"validate:skills": "bun plugins/codex-forge/skills/forge-skill-creator/scripts/check-skill.mjs plugins/codex-forge/skills/*"
 	},
 	"engines": {

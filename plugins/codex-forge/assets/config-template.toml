@@ -32,3 +32,4 @@ open_world_enabled = false
 fast_mode = false
 personality = false
 prevent_idle_sleep = true
+mcp_2026_07_28 = true

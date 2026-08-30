@@ -19,6 +19,7 @@ import {
 	removeGlobalAgentsSection,
 } from "../../../plugins/codex-forge/scripts/installer/owners/global-agents.mjs";
 import {
+	enumerateCodexProcesses,
 	isCodexProcessRow,
 	parseUnixProcessTable,
 	parseWindowsProcessTable,
@@ -140,16 +141,51 @@ describe("installer lifecycle", () => {
 	test("recognizes realistic Unix and Windows Codex process rows", () => {
 		const unixRows = parseUnixProcessTable(
 			[
-				" 101 1 /usr/local/bin/codex --color auto",
-				" 102 1 /usr/local/bin/node /Applications/Codex.app/Contents/Resources/codex app-server",
-				" 103 1 /Applications/Codex.app/Codex Proxy Helper --server",
-				" 104 1 /usr/local/bin/node /Users/me/node_modules/@openai/codex/bin/codex.js --yolo",
-				" 105 1 /usr/local/bin/node /Users/me/codex-forge/scripts/install.mjs install",
+				"1000 101 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/codex /usr/local/bin/codex --color auto",
+				"1000 102 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/node /usr/local/bin/node /Applications/Codex.app/Contents/Resources/codex app-server",
+				"1000 103 1 Sun Jan 01 00:00:00 2023 /Applications/Codex.app/Codex Proxy Helper /Applications/Codex.app/Codex Proxy Helper --server",
+				"1000 104 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/node /usr/local/bin/node /Users/me/node_modules/@openai/codex/bin/codex.js --yolo",
+				"1000 105 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/node /usr/local/bin/node /Users/me/codex-forge/scripts/install.mjs install",
 			].join("\n"),
 		);
 		expect(unixRows.filter(isCodexProcessRow).map((row) => row.pid)).toEqual([
 			101, 102, 103, 104,
 		]);
+		expect(unixRows[0]).toMatchObject({
+			owner_uid: 1000,
+			pid: 101,
+			ppid: 1,
+			start_identity: "Sun Jan 01 00:00:00 2023",
+			image: "/usr/local/bin/codex",
+			args: "/usr/local/bin/codex --color auto",
+		});
+		expect(unixRows[1].commandLine).toBe(
+			"/usr/local/bin/node /Applications/Codex.app/Contents/Resources/codex app-server",
+		);
+		expect(unixRows[1].args.split(/\s+/)[0]).toBe("/usr/local/bin/node");
+		expect(unixRows[1].args).toBe(
+			"/usr/local/bin/node /Applications/Codex.app/Contents/Resources/codex app-server",
+		);
+		expect(unixRows[3].image).toBe("/usr/local/bin/node");
+		expect(unixRows[3].args).toBe(
+			"/usr/local/bin/node /Users/me/node_modules/@openai/codex/bin/codex.js --yolo",
+		);
+		expect(isCodexProcessRow(unixRows[1])).toBe(true);
+		expect(isCodexProcessRow(unixRows[3])).toBe(true);
+		expect(
+			isCodexProcessRow({
+				image: "/usr/local/bin/node",
+				args: "/usr/local/bin/node -e 'console.log(\"codex\")'",
+				commandLine: "/usr/local/bin/node -e 'console.log(\"codex\")'",
+			}),
+		).toBe(false);
+		expect(
+			isCodexProcessRow({
+				image: "/usr/local/bin/node",
+				args: "/usr/local/bin/node /tmp/not-codex.js codex",
+				commandLine: "/usr/local/bin/node /tmp/not-codex.js codex",
+			}),
+		).toBe(false);
 
 		const windowsRows = parseWindowsProcessTable(
 			JSON.stringify([
@@ -163,7 +199,8 @@ describe("installer lifecycle", () => {
 					ProcessId: 202,
 					ParentProcessId: 1,
 					Name: "node.exe",
-					CommandLine: 'node.exe "C:\\Codex\\codex-cli.js" app-server',
+					CommandLine:
+						'node.exe "C:\\Users\\me\\node_modules\\@openai\\codex\\bin\\codex.js" app-server',
 				},
 				{
 					ProcessId: 203,
@@ -179,6 +216,20 @@ describe("installer lifecycle", () => {
 						"node.exe C:\\Users\\me\\node_modules\\@openai\\codex\\bin\\codex.js --yolo",
 				},
 				{
+					ProcessId: 206,
+					ParentProcessId: 1,
+					Name: "node.exe",
+					CommandLine:
+						'node.exe "\\\\server\\share\\@openai\\codex\\bin\\codex.js" app-server',
+				},
+				{
+					ProcessId: 207,
+					ParentProcessId: 1,
+					Name: "node.exe",
+					CommandLine:
+						"node.exe \\\\server\\share\\@openai\\codex\\bin\\codex.js --yolo",
+				},
+				{
 					ProcessId: 205,
 					ParentProcessId: 1,
 					Name: "node.exe",
@@ -187,7 +238,7 @@ describe("installer lifecycle", () => {
 			]),
 		);
 		expect(windowsRows.filter(isCodexProcessRow).map((row) => row.pid)).toEqual(
-			[201, 202, 203, 204],
+			[201, 202, 203, 204, 206, 207],
 		);
 		expect(parseWindowsProcessTable("[]")).toEqual([]);
 		expect(() => parseWindowsProcessTable("not json")).toThrow(
@@ -196,12 +247,67 @@ describe("installer lifecycle", () => {
 		expect(() =>
 			parseWindowsProcessTable(JSON.stringify([{ ProcessId: 1 }])),
 		).toThrow("malformed Windows process-table JSON");
+		expect(
+			isCodexProcessRow({ image: "/bin/sh", commandLine: "sh -c echo codex" }),
+		).toBe(false);
+		expect(
+			isCodexProcessRow({
+				image: "/usr/bin/python3",
+				commandLine: "python3 label_codex",
+			}),
+		).toBe(false);
+		expect(
+			isCodexProcessRow({
+				image: "/usr/bin/node",
+				commandLine:
+					'node --no-warnings "/Users/me/node_modules/@openai/codex/bin/codex.js" app-server',
+			}),
+		).toBe(true);
+		expect(
+			isCodexProcessRow({
+				image: "/usr/bin/node",
+				commandLine: "node -e 'console.log(\\\"codex\\\")'",
+			}),
+		).toBe(false);
+	});
+	test("enumeration requires current ownership and excludes foreign, self, and ancestors", () => {
+		const previous = process.env.CODEX_FORGE_PROCESS_TABLE;
+		const uid = process.getuid();
+		process.env.CODEX_FORGE_PROCESS_TABLE = [
+			`${uid} 5001 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/codex /usr/local/bin/codex --color auto`,
+			`${uid + 1} 5002 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/codex /usr/local/bin/codex --foreign`,
+			`${uid} ${process.pid} ${process.ppid} Sun Jan 01 00:00:00 2023 /usr/local/bin/codex /usr/local/bin/codex --self`,
+			`${uid} ${process.ppid} 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/codex /usr/local/bin/codex --ancestor`,
+		].join("\n");
+		try {
+			expect(enumerateCodexProcesses().map((row) => row.pid)).toEqual([5001]);
+			process.env.CODEX_FORGE_PROCESS_TABLE =
+				"5004 1 /usr/local/bin/codex --missing-owner";
+			expect(() => enumerateCodexProcesses()).toThrow("verify owner");
+		} finally {
+			if (previous === undefined) delete process.env.CODEX_FORGE_PROCESS_TABLE;
+			else process.env.CODEX_FORGE_PROCESS_TABLE = previous;
+		}
+	});
+	test("production Unix enumerator smoke is read-only", () => {
+		const previous = process.env.CODEX_FORGE_PROCESS_TABLE;
+		delete process.env.CODEX_FORGE_PROCESS_TABLE;
+		try {
+			const rows = enumerateCodexProcesses();
+			expect(Array.isArray(rows)).toBe(true);
+			for (const row of rows) {
+				expect(row.owner).toBe(process.getuid());
+				expect(row.start_identity).toBeTruthy();
+			}
+		} finally {
+			if (previous !== undefined)
+				process.env.CODEX_FORGE_PROCESS_TABLE = previous;
+		}
 	});
 	test("refuses install and uninstall while a Codex process is active", () => {
 		const { home } = fixture();
 		const environment = {
-			CODEX_FORGE_PROCESS_TABLE:
-				" 4242     1 /usr/local/bin/node /Applications/Codex.app/codex app-server",
+			CODEX_FORGE_PROCESS_TABLE: `${process.getuid()} 4242 1 Sun Jan 01 00:00:00 2023 /usr/local/bin/node /usr/local/bin/node /Applications/Codex.app/codex app-server`,
 		};
 		let result = runInstaller(home, ["install", "--no-tools"], environment);
 		expect(result.exitCode).toBe(2);
@@ -231,7 +337,7 @@ describe("installer lifecycle", () => {
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		const globalAgents = readFileSync(join(home, "AGENTS.md"), "utf8");
 		expect(
-			globalAgents.startsWith("# AGENTS.md\n# >>> codex-forge:AGENTS.md >>>\n"),
+			globalAgents.startsWith("# AGENTS.md\n\n<!-- CODEX_FORGE_START -->\n"),
 		).toBe(true);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(globalAgents);
@@ -270,6 +376,7 @@ describe("installer lifecycle", () => {
 		expect(parsed.agents.max_depth).toBe(1);
 		expect(parsed.features.multi_agent).toBeUndefined();
 		expect(parsed.features.multi_agent_v2).toBeUndefined();
+		expect(parsed.features.mcp_2026_07_28).toBe(true);
 		expect(parsed.agents["forge-worker"]).toBeUndefined();
 		expect(existsSync(join(home, "agents", "forge-worker.toml"))).toBe(true);
 		expect(parsed.features.token_budget).toBeUndefined();
@@ -319,7 +426,7 @@ describe("installer lifecycle", () => {
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		const installed = readFileSync(join(home, "AGENTS.md"), "utf8");
 		expect(installed.startsWith(original)).toBe(true);
-		expect(installed.match(/codex-forge:AGENTS.md/g)).toHaveLength(2);
+		expect(installed.match(/CODEX_FORGE_(?:START|END) /g)).toHaveLength(2);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(installed);
 		expect(install(home, "uninstall").exitCode).toBe(0);
@@ -335,9 +442,9 @@ describe("installer lifecycle", () => {
 		expect(reverted).toContain("User addition");
 		expect(reverted).toContain("Codex Forge is active");
 		expect(install(home, "uninstall").exitCode).toBe(0);
-		expect(readFileSync(target, "utf8")).toBe("# AGENTS.md\nUser addition\n");
+		expect(readFileSync(target, "utf8")).toBe("# AGENTS.md\n\nUser addition\n");
 		expect(removeGlobalAgentsSection(reverted)).toBe(
-			"# AGENTS.md\nUser addition\n",
+			"# AGENTS.md\n\nUser addition\n",
 		);
 	});
 	test("purge removes only the Forge global section from preexisting AGENTS content", () => {
@@ -357,21 +464,39 @@ describe("installer lifecycle", () => {
 	test("fails closed for marker-like, unmatched, duplicate, and nested global blocks", () => {
 		const { home } = fixture();
 		for (const content of [
-			"# user codex-forge:AGENTS.md note\n",
-			"# >>> codex-forge:AGENTS.md >>>\n",
-			"# >>> codex-forge:AGENTS.md >>>\n# <<< codex-forge:AGENTS.md <<<\n# >>> codex-forge:AGENTS.md >>>\n# <<< codex-forge:AGENTS.md <<<\n",
-			"# >>> codex-forge:AGENTS.md >>>\n# >>> codex-forge:AGENTS.md >>>\n# <<< codex-forge:AGENTS.md <<<\n# <<< codex-forge:AGENTS.md <<<\n",
+			"<!-- CODEX_FORGE_START -->\n",
+			"<!-- CODEX_FORGE_START extra -->\n<!-- CODEX_FORGE_END -->\n",
+			"prefix <!-- CODEX_FORGE_START -->\n<!-- CODEX_FORGE_END -->\n",
+			"<!-- CODEX_FORGE_START --> suffix\n<!-- CODEX_FORGE_END -->\n",
+			"<!-- codex_forge_start -->\n<!-- CODEX_FORGE_END -->\n",
+			"<!-- CODEX_FORGE_START -->\n<!-- CODEX_FORGE_END -->\n<!-- CODEX_FORGE_START -->\n<!-- CODEX_FORGE_END -->\n",
+			"<!-- CODEX_FORGE_START -->\n<!-- CODEX_FORGE_START -->\n<!-- CODEX_FORGE_END -->\n<!-- CODEX_FORGE_END -->\n",
 		]) {
 			writeFileSync(join(home, "AGENTS.md"), content);
 			expect(() => parseGlobalAgents(content)).toThrow();
 			expect(install(home, "install", "--no-tools").exitCode).toBe(2);
 			expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(content);
 		}
+		const prose = "# user codex-forge note\n";
+		writeFileSync(join(home, "AGENTS.md"), prose);
+		expect(parseGlobalAgents(prose)).toEqual({ present: false });
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toContain(
+			"<!-- CODEX_FORGE_START -->",
+		);
 		const owned =
-			"# >>> codex-forge:AGENTS.md >>>\nowned\n# <<< codex-forge:AGENTS.md <<<\n";
+			"<!-- CODEX_FORGE_START -->\nowned\n<!-- CODEX_FORGE_END -->\n";
 		writeFileSync(join(home, "AGENTS.md"), owned);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(2);
 		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(owned);
+	});
+	test("refuses an unrecorded historical Forge block", () => {
+		const { home } = fixture();
+		const content =
+			"user prefix\n# >>> codex-forge:global-agents >>>\nowned\n# <<< codex-forge:global-agents <<<\nuser suffix\n";
+		writeFileSync(join(home, "AGENTS.md"), content);
+		expect(install(home, "install", "--no-tools").exitCode).toBe(2);
+		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(content);
 	});
 	test("rolls back a failed fresh install and failed restamp transaction", () => {
 		const { home, original } = fixture();
@@ -460,6 +585,6 @@ describe("installer lifecycle", () => {
 			install(home, "doctor", "--json").stdout.toString(),
 		);
 		expect(report.upgrade_available).toBe(true);
-		expect(report.sources_changed).toContain("assets/global-AGENTS.md");
+		expect(report.sources_changed).toContain("assets/AGENTS.md.patch");
 	});
 });

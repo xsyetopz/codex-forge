@@ -18,6 +18,7 @@ import {
 } from "./owners/cache.mjs";
 import {
 	mergeConfig,
+	parseManagedConfig,
 	resolveMaxConcurrentThreads,
 	stripManaged,
 } from "./owners/config.mjs";
@@ -34,7 +35,13 @@ import {
 	uninstallGlobalAgents,
 	validateGlobalAgentsTarget,
 } from "./owners/global-agents.mjs";
-import { restoreSnapshot, snapshotPaths } from "./owners/transaction.mjs";
+import {
+	assertRegularFile,
+	restoreSnapshot,
+	snapshotPaths,
+	withInstallerLock,
+	writeAtomic,
+} from "./owners/transaction.mjs";
 import { requireCodexClosed } from "./processes.mjs";
 import {
 	pluginManifest,
@@ -75,7 +82,9 @@ function originalConfig(current, priorState) {
 			: "";
 		if (prior && existsSync(prior)) return readFileSync(prior, "utf8");
 	}
-	if (current.includes("codex-forge:")) {
+	if (Object.keys(priorState).length)
+		parseManagedConfig(current, { requirePresent: true });
+	if (current.includes("# >>> codex-forge >>>")) {
 		process.stderr.write(
 			"[cf] existing Forge config was modified; preserving non-Forge edits during reinstall\n",
 		);
@@ -83,7 +92,7 @@ function originalConfig(current, priorState) {
 	}
 	return current;
 }
-async function install(options) {
+async function installUnlocked(options) {
 	requireCodexClosed();
 	const home = codexHome();
 	mkdirSync(home, { recursive: true });
@@ -92,6 +101,7 @@ async function install(options) {
 		? readFileSync(configPath, "utf8")
 		: "";
 	const statePath = join(home, "forge", "install-state.json");
+	assertRegularFile(statePath, "installation state", home);
 	const priorState = readJson(statePath);
 	validateInstallationState(home, priorState);
 	const priorConfigUnchanged =
@@ -165,7 +175,7 @@ async function install(options) {
 			created_tables: createdTables,
 		};
 		mkdirSync(dirname(statePath), { recursive: true });
-		writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+		writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
 		if (
 			process.env.NODE_ENV === "test" &&
 			process.env.CODEX_FORGE_FAIL_INSTALL_AT === "after-state"
@@ -195,11 +205,12 @@ async function install(options) {
 	console.log(`[cf] backup: ${backup}`);
 	return 0;
 }
-async function uninstall(options) {
+async function uninstallUnlocked(options) {
 	requireCodexClosed();
 	const home = codexHome();
 	const configPath = join(home, "config.toml");
 	const statePath = join(home, "forge", "install-state.json");
+	assertRegularFile(statePath, "installation state", home);
 	const state = readJson(statePath);
 	validateInstallationState(home, state);
 	if (state.global_agents)
@@ -249,9 +260,10 @@ async function uninstall(options) {
 	}
 	return 0;
 }
-async function revert() {
+async function revertUnlocked() {
 	requireCodexClosed();
 	const statePath = join(codexHome(), "forge", "install-state.json");
+	assertRegularFile(statePath, "installation state", codexHome());
 	if (!existsSync(statePath)) {
 		process.stderr.write("[cf] no Forge installation state found\n");
 		return 1;
@@ -275,9 +287,44 @@ async function revert() {
 		process.stderr.write(`[cf] ${error.message}\n`);
 		return 2;
 	}
-	writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+	writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
 	console.log(`[cf] reverted ${count} mapped files to plugin sources`);
 	return 0;
 }
 
-export { install, revert, uninstall };
+const install = async (options) => {
+	requireCodexClosed();
+	const home = codexHome();
+	return withInstallerLock(home, async (_lock) => {
+		requireCodexClosed();
+		mkdirSync(home, { recursive: true });
+		return installUnlocked(options);
+	});
+};
+const uninstall = async (options) => {
+	requireCodexClosed();
+	const home = codexHome();
+	if (!existsSync(home)) return uninstallUnlocked(options);
+	return withInstallerLock(home, async () => {
+		requireCodexClosed();
+		return uninstallUnlocked(options);
+	});
+};
+const revert = async () => {
+	requireCodexClosed();
+	const home = codexHome();
+	if (!existsSync(home)) return revertUnlocked();
+	return withInstallerLock(home, async () => {
+		requireCodexClosed();
+		return revertUnlocked();
+	});
+};
+
+export {
+	install,
+	installUnlocked,
+	revert,
+	revertUnlocked,
+	uninstall,
+	uninstallUnlocked,
+};

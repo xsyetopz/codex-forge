@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { TOML } from "bun";
+import { tomlMultilineBasicString } from "./toml.mjs";
 
 const ROOT_KEYS = new Set([
 	"model",
@@ -31,7 +32,12 @@ const TABLE_KEYS = {
 		"destructive_enabled",
 		"open_world_enabled",
 	]),
-	features: new Set(["fast_mode", "personality", "prevent_idle_sleep"]),
+	features: new Set([
+		"fast_mode",
+		"personality",
+		"prevent_idle_sleep",
+		"mcp_2026_07_28",
+	]),
 };
 
 const quote = (value) => JSON.stringify(String(value));
@@ -93,26 +99,107 @@ function splitSections(text) {
 	return [root, sections];
 }
 
-const managedBlock = (scope, lines) => [
-	`# >>> codex-forge:${scope} >>>\n`,
+const managedBlock = (_scope, lines) => [
+	`# >>> codex-forge >>>\n`,
 	...lines.map((line) => `${line.replace(/\n$/, "")}\n`),
-	`# <<< codex-forge:${scope} <<<\n`,
+	`# <<< codex-forge <<<\n`,
 ];
 
-export function stripManaged(text) {
-	return text.replace(
-		/^# >>> codex-forge:[^\n]+ >>>\n.*?^# <<< codex-forge:[^\n]+ <<<\n?/gms,
-		"",
-	);
+const OPEN = "# >>> codex-forge >>>";
+const CLOSE = "# <<< codex-forge <<<";
+const EXPECTED_SCOPES = new Map([
+	["root", ROOT_KEYS],
+	["sandbox_workspace_write", TABLE_KEYS.sandbox_workspace_write],
+	["agents", TABLE_KEYS.agents],
+	["apps._default", TABLE_KEYS["apps._default"]],
+	["features", TABLE_KEYS.features],
+]);
+
+export function parseManagedConfig(text, { requirePresent = false } = {}) {
+	const lines = text.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [];
+	const blocks = [];
+	const seen = new Set();
+	let start = 0;
+	let open = null;
+	let table = "root";
+	for (const raw of lines) {
+		const line = raw.replace(/\n$/, "");
+		const markerLike = /^#\s*(?:>>>|<<<)\s*codex-forge\b/.test(line);
+		const header = parseTableHeader(line);
+		if (header !== null && open === null) table = header;
+		if (line === OPEN) {
+			if (open !== null)
+				throw new Error(
+					"config.toml contains nested or duplicate Forge markers",
+				);
+			open = start;
+		} else if (line === CLOSE) {
+			if (open === null)
+				throw new Error("config.toml contains an unmatched Forge close marker");
+			const body = text.slice(open + OPEN.length + 1, start);
+			const bodyScope = body.match(/^\[([^\]]+)\]/m)?.[1];
+			const scope = bodyScope ?? table;
+			if (scope !== "root" && !EXPECTED_SCOPES.has(scope))
+				throw new Error(
+					`config.toml contains an unknown Forge scope: ${scope}`,
+				);
+			if (seen.has(scope))
+				throw new Error(`config.toml contains duplicate Forge scope: ${scope}`);
+			const keys = new Set(
+				body
+					.split("\n")
+					.map((value) => assignmentKey(value))
+					.filter(Boolean),
+			);
+			const expected = EXPECTED_SCOPES.get(scope);
+			if (scope !== "root") keys.delete(scope);
+			if (
+				keys.size !== expected.size ||
+				[...expected].some((key) => !keys.has(key))
+			)
+				throw new Error(
+					`config.toml Forge scope has an unexpected managed-key signature: ${scope}`,
+				);
+			seen.add(scope);
+			blocks.push({ start: open, end: start + raw.length, scope });
+			open = null;
+		} else if (markerLike) {
+			throw new Error(
+				"config.toml contains malformed Forge marker-like content",
+			);
+		}
+		start += raw.length;
+	}
+	if (open !== null)
+		throw new Error("config.toml contains an unmatched Forge open marker");
+	if (requirePresent && blocks.length === 0)
+		throw new Error("config.toml is missing its recorded Forge block");
+	if (blocks.length && seen.size !== EXPECTED_SCOPES.size)
+		throw new Error(
+			"config.toml is missing one or more canonical Forge scopes",
+		);
+	return { present: blocks.length > 0, blocks };
+}
+
+export function stripManaged(text, options = {}) {
+	const parsed = parseManagedConfig(text, options);
+	let output = text;
+	for (const block of [...parsed.blocks].reverse())
+		output = `${output.slice(0, block.start)}${output.slice(block.end)}`;
+	return output;
 }
 
 export function resolveMaxConcurrentThreads(text) {
 	const unmanaged = maxThreadsAssignment(stripManaged(text));
 	if (unmanaged !== null) return Number(unmanaged);
-	const managed = text.match(
-		/^# >>> codex-forge:(?:agents|table:agents) >>>\n([\s\S]*?)^# <<< codex-forge:(?:agents|table:agents) <<<\n?/m,
-	)?.[1];
-	const managedValue = managed ? maxThreadsAssignment(managed) : null;
+	const managedValue =
+		[
+			...text.matchAll(
+				/^# >>> codex-forge >>>\n([\s\S]*?)^# <<< codex-forge <<<\n?/gm,
+			),
+		]
+			.map((match) => maxThreadsAssignment(match[1]))
+			.find(Boolean) ?? null;
 	if (
 		managedValue === null ||
 		Number(managedValue) === LEGACY_DEFAULT_MAX_CONCURRENT_THREADS
@@ -123,6 +210,7 @@ export function resolveMaxConcurrentThreads(text) {
 
 function fragments(home, pluginRoot, maxConcurrentThreads) {
 	const forge = join(home, "forge");
+	// The asset contract intentionally trims boundary whitespace before embedding.
 	const developer = readFileSync(
 		join(pluginRoot, "assets", "developer-instructions.txt"),
 		"utf8",
@@ -137,7 +225,7 @@ function fragments(home, pluginRoot, maxConcurrentThreads) {
 		`model_instructions_file = ${quote(join(forge, "model-instructions.md"))}`,
 		`model_catalog_json = ${quote(join(forge, "model-catalog.json"))}`,
 		`experimental_compact_prompt_file = ${quote(join(forge, "compact-prompt.md"))}`,
-		`developer_instructions = ${quote(developer)}`,
+		`developer_instructions = ${tomlMultilineBasicString(developer)}`,
 		"include_collaboration_mode_instructions = false",
 		'approval_policy = "on-request"',
 		'approvals_reviewer = "user"',
@@ -160,6 +248,7 @@ function fragments(home, pluginRoot, maxConcurrentThreads) {
 			"fast_mode = false",
 			"personality = false",
 			"prevent_idle_sleep = true",
+			"mcp_2026_07_28 = true",
 		],
 	};
 	return [root, tables];

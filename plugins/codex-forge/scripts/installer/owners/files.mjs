@@ -59,7 +59,7 @@ function expectedSource(home, target) {
 	if (target === join(home, "forge", "model-catalog.json"))
 		return FALLBACK_CATALOG_SOURCE;
 	if (target === join(home, "AGENTS.md"))
-		return join("assets", "global-AGENTS.md");
+		return join("assets", "AGENTS.md.patch");
 	if (target === join(home, "rules", "forge.rules"))
 		return join("assets", "forge.rules");
 	const agents = join(home, "agents");
