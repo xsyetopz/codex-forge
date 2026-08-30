@@ -75,19 +75,20 @@ app server are closed:
 FORGE_CHECKOUT="/path/to/current/codex-forge"
 test -f "$FORGE_CHECKOUT/install.mjs"
 cd "$FORGE_CHECKOUT"
-bun install.mjs install --purge-cache
-bun install.mjs doctor --json
-# Or, from this same checkout: just reinstall-purge-cache && bun install.mjs doctor --json
+bun install.mjs reinstall
 ```
 
 The source checkout supplies the assets for the upgrade/restamp. Never use an
 installed cache or `install-state.json` as upgrade source; an old state file
 alongside a newer cache must not select a version.
 
-`install --purge-cache` is the reinstall operation. It installs the current
-Forge assets and reports stale cached plugin versions. Cache deletion is
-deliberately deferred because the installer cannot prove cross-process cache
-ownership; retention is reported as `UNVERIFIED`.
+The `reinstall` command runs the validated uninstall/purge, supported plugin
+removal, exact Forge-cache cleanup, marketplace restamp, plugin add, installer
+restamp, and doctor in strict sequence. It checks Codex process liveness before
+the first mutation and immediately before every marketplace/plugin mutation;
+any failure stops later steps. `install --purge-cache` remains a diagnostic-safe
+installer operation whose own cache deletion is deferred when cross-process
+ownership cannot be proven.
 
 For inspection only, use:
 
@@ -126,6 +127,9 @@ The expected evidence is a managed `model_catalog_json` pointing at
 slugs `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`, each with
 `"multi_agent_version": "v1"` and `"use_responses_lite": false`. The final
 `doctor` report should also show the current installed/source version and no
+Codex CLI compatibility failure: the installed CLI must be version 0.151.0 or
+newer, and missing or malformed `codex --version` output is unhealthy. The JSON
+and human reports use the same compatibility decision.
 unexpected upgrade or override findings. Hook trust remains a manual `/hooks`
 check because the installer cannot inspect or grant it.
 

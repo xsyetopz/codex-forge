@@ -10,23 +10,24 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { which } from "../lib/process.mjs";
+import { FALLBACK_CATALOG_SOURCE } from "./owners/catalog-contract.mjs";
 
 export const FORGE_CATALOG_SLUGS = [
 	"gpt-5.6-sol",
 	"gpt-5.6-terra",
 	"gpt-5.6-luna",
 ];
-export const GENERATED_CATALOG_SOURCE = "generated/model-catalog.json";
-export const FALLBACK_CATALOG_SOURCE = join("assets", "model-catalog.json");
 export const DEFAULT_CATALOG_TIMEOUT_MS = 10_000;
 export const DEFAULT_CATALOG_TERMINATION_GRACE_MS = 500;
 export const DEFAULT_CATALOG_OUTPUT_LIMIT_BYTES = 2 * 1024 * 1024;
 
 const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-export function forgeCatalogTarget(home) {
-	return join(home, "forge", "model-catalog.json");
-}
+export {
+	FALLBACK_CATALOG_SOURCE,
+	forgeCatalogTarget,
+	GENERATED_CATALOG_SOURCE,
+} from "./owners/catalog-contract.mjs";
 
 function extractJsonObject(text) {
 	const start = text.indexOf("{");
@@ -42,7 +43,7 @@ function extractJsonObject(text) {
 export function applyForgeCatalogPatches(catalog) {
 	if (!catalog || !Array.isArray(catalog.models))
 		throw new Error("model catalog is missing a models array");
-	// Codex 0.150.1 sends custom base instructions as an additive developer
+	// Codex 0.151.0 sends custom base instructions as an additive developer
 	// message in Responses Lite. Standard Responses preserves replacement.
 	const models = catalog.models.map((model) => {
 		if (!FORGE_CATALOG_SLUGS.includes(model.slug)) return model;
@@ -88,13 +89,19 @@ export function forgeCatalogSatisfiesContract(path) {
 	}
 }
 
-function killProcessTree(child, signal) {
-	if (!child.pid) return;
+function killProcessTree(child, signal, signalProcess = process.kill) {
+	if (!child.pid || (process.platform === "win32" && child.killed))
+		return false;
 	try {
 		if (process.platform === "win32") child.kill(signal);
-		else process.kill(-child.pid, signal);
+		else signalProcess(-child.pid, signal);
+		return true;
 	} catch (error) {
-		if (error?.code !== "ESRCH") throw error;
+		// A detached group can disappear between exit and close, or be owned by
+		// another supervisor. Treat that race as an unverified signal, not an
+		// uncaught async exception; callers retain the cleanup diagnostic.
+		if (error?.code === "ESRCH" || error?.code === "EPERM") return false;
+		throw error;
 	}
 }
 
@@ -104,6 +111,8 @@ export function runBundledCatalog({
 	timeoutMs = DEFAULT_CATALOG_TIMEOUT_MS,
 	terminationGraceMs = DEFAULT_CATALOG_TERMINATION_GRACE_MS,
 	outputLimitBytes = DEFAULT_CATALOG_OUTPUT_LIMIT_BYTES,
+	signalProcess = process.kill,
+	onSettlement = null,
 } = {}) {
 	return new Promise((resolveResult) => {
 		const started = Date.now();
@@ -135,8 +144,49 @@ export function runBundledCatalog({
 		let forceTimer = null;
 		let resolveTimer = null;
 		let timeoutTimer = null;
-		const releaseChild = ({ terminateGroup = false } = {}) => {
-			if (terminateGroup) killProcessTree(child, "SIGTERM");
+		let termSent = false;
+		let killSent = false;
+		let closeFinalized = false;
+		let closeResult = null;
+		const sendTerm = () => {
+			if (termSent) return false;
+			termSent = true;
+			return killProcessTree(child, "SIGTERM", signalProcess);
+		};
+		const sendKill = () => {
+			if (killSent) return false;
+			killSent = true;
+			return killProcessTree(child, "SIGKILL", signalProcess);
+		};
+		const groupExists = () => {
+			if (process.platform === "win32" || !child.pid) return false;
+			try {
+				signalProcess(-child.pid, 0);
+				return true;
+			} catch (error) {
+				if (error?.code === "ESRCH") return false;
+				if (error?.code === "EPERM") return true;
+				throw error;
+			}
+		};
+		const waitForGroupGone = (limitMs) =>
+			new Promise((resolveGone) => {
+				const deadline = Date.now() + limitMs;
+				const poll = () => {
+					let exists;
+					try {
+						exists = groupExists();
+					} catch (error) {
+						return resolveGone({ gone: false, error });
+					}
+					if (!exists || Date.now() >= deadline)
+						return resolveGone({ gone: !exists, error: null });
+					resolveTimer = setTimeout(poll, 20);
+					resolveTimer.unref?.();
+				};
+				poll();
+			});
+		const releaseChild = () => {
 			child.stdout?.removeAllListeners();
 			child.stderr?.removeAllListeners();
 			child.removeAllListeners();
@@ -163,13 +213,29 @@ export function runBundledCatalog({
 		const terminate = (reason) => {
 			if (terminalReason) return;
 			terminalReason = reason;
-			killProcessTree(child, "SIGTERM");
+			sendTerm();
 			forceTimer = setTimeout(() => {
-				killProcessTree(child, "SIGKILL");
-				resolveTimer = setTimeout(() => {
-					releaseChild();
-					finish({ signal: "SIGKILL" });
-				}, terminationGraceMs);
+				const killDelivered = sendKill();
+				void waitForGroupGone(terminationGraceMs).then(
+					({ gone, error: cleanupError }) => {
+						if (cleanupError) terminalReason ||= "cleanup_error";
+						onSettlement?.({ branch: "timer", gone, killDelivered });
+						releaseChild();
+						finish({
+							status: closeResult?.status ?? null,
+							signal: gone && killDelivered ? "SIGKILL" : null,
+							error:
+								cleanupError?.message ??
+								(gone && killDelivered
+									? null
+									: gone
+										? "SIGKILL delivery was not verified"
+										: killDelivered
+											? "detached process group remained alive after bounded SIGKILL cleanup"
+											: "SIGKILL delivery was not verified"),
+						});
+					},
+				);
 			}, terminationGraceMs);
 		};
 		const collect = (kind, chunk) => {
@@ -185,15 +251,50 @@ export function runBundledCatalog({
 		child.stderr.on("data", (chunk) => collect("stderr", chunk));
 		child.on("error", (error) => {
 			terminalReason ||= "spawn_error";
-			releaseChild({ terminateGroup: true });
+			sendTerm();
 			finish({ error: error.message });
+		});
+		child.on("exit", () => {
+			// Signal descendants while the detached group still exists. close is
+			// only stream/descriptor cleanup and never re-signals a lost owner.
+			if (!terminalReason) sendTerm();
 		});
 		child.on("close", (status, signal) => {
 			// The child owns a detached process group. Clear any descendants that
 			// closed their stdio before the group leader exited, then release every
 			// listener/stream held by this helper.
-			releaseChild({ terminateGroup: true });
-			finish({ status, signal });
+			if (closeFinalized) return;
+			closeResult = { status, signal };
+			if (terminalReason && !killSent) return;
+			closeFinalized = true;
+			void (async () => {
+				let probe = await waitForGroupGone(terminationGraceMs);
+				let cleanupSignal = signal;
+				let cleanupError = probe.error;
+				let killDelivered = null;
+				if (!probe.gone && !cleanupError) {
+					killDelivered = sendKill();
+					probe = await waitForGroupGone(terminationGraceMs);
+					cleanupSignal = probe.gone && killDelivered ? "SIGKILL" : signal;
+					cleanupError =
+						probe.error ??
+						(probe.gone && killDelivered
+							? null
+							: probe.gone
+								? "SIGKILL delivery was not verified"
+								: killDelivered
+									? "detached process group remained alive after bounded SIGKILL cleanup"
+									: "SIGKILL delivery was not verified");
+				}
+				if (cleanupError) terminalReason ||= "cleanup_error";
+				onSettlement?.({ branch: "close", gone: probe.gone, killDelivered });
+				releaseChild();
+				finish({
+					status,
+					signal: cleanupSignal,
+					error: cleanupError?.message ?? cleanupError,
+				});
+			})();
 		});
 		timeoutTimer = setTimeout(() => terminate("timeout"), timeoutMs);
 	});
@@ -223,6 +324,7 @@ export async function generateForgeCatalogSnapshot({
 	timeoutMs,
 	terminationGraceMs,
 	outputLimitBytes,
+	signalProcess,
 } = {}) {
 	const fallback = checkedInSnapshot(pluginRoot);
 	if (!executable)
@@ -240,8 +342,10 @@ export async function generateForgeCatalogSnapshot({
 		timeoutMs,
 		terminationGraceMs,
 		outputLimitBytes,
+		signalProcess,
 	});
 	let reason = result.reason;
+	if (!reason && result.error) reason = "cleanup_error";
 	if (!reason && result.status !== 0) reason = "nonzero_exit";
 	const raw = reason
 		? null

@@ -1,0 +1,7 @@
+# >>> codex-forge:AGENTS.md >>>
+
+Codex Forge is active. Use an explicit `$forge-*` selector when a Forge workflow matches the task, and use the repository's nearest `AGENTS.md` for repository-specific governance.
+Keep repository work within the requested scope, preserve unrelated user content, and obtain explicit permission before external or hosted writes. Report changed paths, validation, and unresolved evidence when a task is complete.
+Forge developer instructions own proactive phase sequencing and worker/reviewer protocol.
+
+# <<< codex-forge:AGENTS.md <<<

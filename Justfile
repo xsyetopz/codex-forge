@@ -12,6 +12,6 @@ doctor:
 doctor-json:
     bun install.mjs doctor --json
 
-reinstall-purge-cache:
+reinstall:
     @echo 'Run this from an external terminal only, after closing Codex CLI/app sessions and the Codex app server.'
-    bun install.mjs install --purge-cache
+    bun install.mjs reinstall

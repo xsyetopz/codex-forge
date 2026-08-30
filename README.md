@@ -21,10 +21,12 @@ It extends the native `codex` workflow; it doesn't install a wrapper or replace 
 
 Agents and contributors working in this repository should start from
 [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+The repository-root `AGENTS.md` is maintainer governance; installation manages
+the separate user-level `$CODEX_HOME/AGENTS.md` section.
 
 ## Install Codex Forge
 
-Prerequisites: Codex CLI 0.150.1 and Bun 1.4 or newer.
+Prerequisites: Codex CLI 0.151.0 and Bun 1.4 or newer.
 
 Before adding, removing, upgrading, or version-restamping the plugin, close
 every Codex CLI/app session and fully terminate the Codex app server. A loaded
@@ -42,7 +44,7 @@ codex plugin add codex-forge@codex-forge
 bun install.mjs install
 ```
 
-The first two commands install the plugin. The final command merges Forge-owned settings into `$CODEX_HOME/config.toml` (`~/.codex` by default), copies the pinned agent/rule/prompt/catalog assets, records SHA-256 mappings, and creates a timestamped backup. Unrelated configuration is preserved.
+The first two commands install the plugin. The final command merges Forge-owned settings into `$CODEX_HOME/config.toml` (`~/.codex` by default), appends the Forge-owned section to `$CODEX_HOME/AGENTS.md`, copies the pinned agent/rule/prompt/catalog assets, records SHA-256 mappings, and creates a timestamped backup. Unrelated configuration and pre-existing AGENTS content are preserved.
 
 Start a fresh Codex thread after installation. Run `/hooks`, review the exact Forge commands, and explicitly trust them in Codex. The plugin registers its hooks while Codex keeps the default-on hook runtime and owns trust review; `doctor` reports hook trust as `UNVERIFIED` until that review is complete.
 
@@ -86,12 +88,24 @@ bun install.mjs uninstall
 bun install.mjs uninstall --purge
 ```
 
+For a full plugin-cache clean and reinstall, run the fail-closed existing
+installer command from a separate terminal after shutdown:
+
+```sh
+bun install.mjs reinstall
+```
+
+See [Reinstall and cache recovery](docs/reinstall-recovery.md);
+`--purge-cache` is intentionally diagnostic-only.
+
 - `install --no-tools` skips optional CLI-helper installation.
 - Reinstall preserves mapped files changed locally; `--replace` deliberately replaces those overrides.
 - `revert` restores current plugin sources over mapped targets.
 - `uninstall` restores unchanged preexisting targets and removes unchanged Forge-created targets.
-- `uninstall --purge` also removes plugin registrations, overrides, and backup history. Cached plugin roots are retained conservatively because cross-process ownership is `UNVERIFIED`; confirm upstream cache retention externally after all sessions and the app server are closed.
-- `--purge-cache` reports stale cached versions but does not delete them without reliable cross-process liveness or lease evidence. Upstream cache retention remains `UNVERIFIED`.
+- The installer creates or updates only the marked Forge section in `$CODEX_HOME/AGENTS.md`; a newly created file is titled `# AGENTS.md`, and uninstall preserves pre-existing content.
+- `uninstall --purge` also removes plugin registrations, overrides, and backup history. Cached plugin roots are retained conservatively because cross-process ownership is `UNVERIFIED`; `reinstall` performs exact Forge-root cleanup only after supported plugin removal.
+- `install --purge-cache` reports stale cached versions but does not delete them; `reinstall` performs exact Forge-cache cleanup after supported plugin removal.
+- The installer refuses file or registration changes when its process inspection finds a Codex CLI/app or app-server process; close all Codex sessions and the app server first.
 
 ## Permission model
 
@@ -142,7 +156,7 @@ writes, sequential dependencies, validation or I/O bottlenecks, and expensive
 Sol lanes favor serialized or smaller active sets. Completed agents should be
 collected and closed so their capacity returns to the eight-slot ceiling.
 
-Forge installs a lean 245-word model-instruction layer at
+Forge installs a lean 283-word model-instruction layer at
 `$CODEX_HOME/forge/model-instructions.md` and points the managed
 `model_instructions_file` key at that exact path. Sentence order follows
 GPT-5.6 Role → Goal → Success → Constraints → Tools → Output → Stop: user
@@ -152,12 +166,10 @@ orchestration, validation, and silent-work contract used by Forge. Codex
 carries the root session's effective base instructions into legacy V1
 children, so every registered Forge role receives the same base contract;
 role TOML files add their bounded developer instructions, model, and effort.
-The benchmark baseline leaves the model-instruction key unset for matched stock
-base-instruction comparisons.
 
 ## Context continuity
 
-Forge selects Codex's standard summary-backed compaction with a self-contained execution checkpoint. The managed configuration leaves token-budget context resets unset; Codex CLI 0.150.1 preserves the summary-producing path, while continuity remains grounded in the compact handoff. The 0.150.1 patch additionally budgets retained images during remote compaction.
+Forge selects Codex's standard summary-backed compaction with a self-contained execution checkpoint. The managed configuration leaves token-budget context resets unset; Codex CLI 0.151.0 preserves the summary-producing path, while continuity remains grounded in the compact handoff. Codex 0.150.1 budgets retained images during remote compaction, and 0.151.0 accounts nested-subagent usage against root goal budgets; neither changes Forge's deterministic compaction choice.
 
 See [context compaction findings](docs/context-compaction-2026-08-24.md) for the recorded incident, upstream mechanism, adopted controls, avoided alternatives, and verification limits.
 
