@@ -41,6 +41,15 @@ function executable(body) {
 	return path;
 }
 
+function nodeExecutable(source) {
+	const directory = mkdtempSync(join(tmpdir(), "forge-catalog-node-test-"));
+	temporary.push(directory);
+	const path = join(directory, "codex-fixture.mjs");
+	writeFileSync(path, `#!/usr/bin/env node\n${source}\n`);
+	chmodSync(path, 0o755);
+	return path;
+}
+
 function runCatalogCli(arguments_, environment = {}) {
 	return spawnSync("bun", [CATALOG_CLI, ...arguments_], {
 		env: { ...process.env, ...environment },
@@ -52,6 +61,15 @@ function runCatalogCli(arguments_, environment = {}) {
 function processIsAlive(pid) {
 	try {
 		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function processGroupIsAlive(pid) {
+	try {
+		process.kill(-pid, 0);
 		return true;
 	} catch {
 		return false;
@@ -242,6 +260,243 @@ describe("Forge model catalog patches", () => {
 		expect(Date.now() - started).toBeLessThan(1_000);
 		expect(result.reason).toBe("output_limit");
 		expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(128);
+	});
+
+	test("escalates exactly once to SIGKILL for a TERM-resistant detached group", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "forge-catalog-resistant-"));
+		temporary.push(directory);
+		const groupFile = join(directory, "group.pid");
+		const executablePath = executable(
+			`trap '' TERM\necho $$ > "${groupFile}"\nwhile :; do :; done`,
+		);
+		try {
+			const result = await runBundledCatalog({
+				executable: executablePath,
+				env: { ...process.env, GROUP_FILE: groupFile },
+				timeoutMs: 1_000,
+				terminationGraceMs: 100,
+			});
+			expect(result.reason).toBe("timeout");
+			expect(result.signal).toBe("SIGKILL");
+			const groupPid = Number(readFileSync(groupFile, "utf8"));
+			expect(processGroupIsAlive(groupPid)).toBe(false);
+		} finally {
+			for (const pid of [groupFile]
+				.filter((path) => existsSync(path))
+				.map((path) => Number(readFileSync(path, "utf8")))) {
+				if (Number.isInteger(pid) && pid > 0 && processIsAlive(pid)) {
+					try {
+						process.kill(pid, "SIGKILL");
+					} catch {}
+				}
+			}
+		}
+	});
+
+	test("fails closed when SIGKILL delivery returns EPERM and the group remains alive", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "forge-catalog-kill-eperm-"));
+		temporary.push(directory);
+		const groupFile = join(directory, "group.pid");
+		const executablePath = executable(
+			`trap '' TERM\necho $$ > "${groupFile}"\nwhile :; do :; done`,
+		);
+		const signalProcess = (pid, signal) => {
+			if (signal === "SIGKILL") {
+				const error = new Error("injected EPERM");
+				error.code = "EPERM";
+				throw error;
+			}
+			return process.kill(pid, signal);
+		};
+		try {
+			const result = await runBundledCatalog({
+				executable: executablePath,
+				signalProcess,
+				timeoutMs: 1_000,
+				terminationGraceMs: 50,
+			});
+			expect(result.signal).toBe(null);
+			expect(result.error).toMatch(/not verified|remained alive/);
+			expect(processGroupIsAlive(Number(readFileSync(groupFile, "utf8")))).toBe(
+				true,
+			);
+		} finally {
+			if (existsSync(groupFile)) {
+				try {
+					process.kill(-Number(readFileSync(groupFile, "utf8")), "SIGKILL");
+				} catch {}
+			}
+		}
+	});
+
+	test("does not attribute SIGKILL when the group is already gone and delivery was unverified", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "forge-catalog-kill-esrch-"));
+		temporary.push(directory);
+		const groupFile = join(directory, "group.pid");
+		const executablePath = executable(
+			`trap 'exit 0' TERM\necho $$ > "${groupFile}"\n(sleep 30) &\nwhile :; do :; done`,
+		);
+		const signalProcess = (pid, signal) => {
+			if (signal === "SIGKILL") {
+				try {
+					process.kill(pid, signal);
+				} catch {}
+				const error = new Error("injected ESRCH after delivery race");
+				error.code = "ESRCH";
+				throw error;
+			}
+			return process.kill(pid, signal);
+		};
+		try {
+			const result = await runBundledCatalog({
+				executable: executablePath,
+				signalProcess,
+				timeoutMs: 1_000,
+				terminationGraceMs: 50,
+			});
+			expect(result.signal).toBeNull();
+			expect(result.error).toBe("SIGKILL delivery was not verified");
+			expect(processGroupIsAlive(Number(readFileSync(groupFile, "utf8")))).toBe(
+				false,
+			);
+		} finally {
+			if (existsSync(groupFile)) {
+				try {
+					process.kill(-Number(readFileSync(groupFile, "utf8")), "SIGKILL");
+				} catch {}
+			}
+		}
+	});
+
+	test("reports timer-wins SIGKILL cleanup when close is delayed by a detached pipe-holding descendant", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "forge-catalog-timer-wins-"));
+		temporary.push(directory);
+		const groupFile = join(directory, "group.pid");
+		const descendantFile = join(directory, "descendant.pid");
+		const settlements = [];
+		// Node's detached child creates an independent process group without a
+		// platform-specific setsid command. The leader ignores TERM; the detached
+		// descendant retains the catalog pipes after the original group is killed.
+		const executablePath = nodeExecutable(`
+import { spawn } from "node:child_process";
+import { writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(groupFile)}, String(process.pid));
+const holder = spawn(process.execPath, ["-e", "setInterval(() => {}, 30_000)"], { detached: true, stdio: ["ignore", "inherit", "inherit"] });
+writeFileSync(${JSON.stringify(descendantFile)}, String(holder.pid));
+process.on("SIGTERM", () => {});
+setInterval(() => {}, 30_000);
+`);
+		try {
+			const result = await runBundledCatalog({
+				executable: executablePath,
+				timeoutMs: 1_000,
+				terminationGraceMs: 100,
+				onSettlement: (event) => settlements.push(event),
+			});
+			expect(result.reason).toBe("timeout");
+			expect(result.signal).toBe("SIGKILL");
+			expect(result.error).toBeNull();
+			expect(settlements).toEqual([
+				{ branch: "timer", gone: true, killDelivered: true },
+			]);
+			const groupPid = Number(readFileSync(groupFile, "utf8"));
+			const descendantPid = Number(readFileSync(descendantFile, "utf8"));
+			expect(descendantPid).toBeGreaterThan(0);
+			expect(processGroupIsAlive(groupPid)).toBe(false);
+		} finally {
+			const groupPid = existsSync(groupFile)
+				? Number(readFileSync(groupFile, "utf8"))
+				: null;
+			const descendantPid = existsSync(descendantFile)
+				? Number(readFileSync(descendantFile, "utf8"))
+				: null;
+			if (existsSync(groupFile)) {
+				try {
+					process.kill(-groupPid, "SIGKILL");
+				} catch {}
+			}
+			if (descendantPid)
+				try {
+					process.kill(descendantPid, "SIGKILL");
+				} catch {}
+			const deadline = Date.now() + 1_000;
+			while (
+				descendantPid &&
+				processIsAlive(descendantPid) &&
+				Date.now() < deadline
+			)
+				await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
+			if (groupPid) expect(processGroupIsAlive(groupPid)).toBe(false);
+			if (descendantPid) expect(processIsAlive(descendantPid)).toBe(false);
+		}
+	});
+
+	test("SIGKILLs a TERM-resistant descendant after a status-zero leader exits", async () => {
+		const directory = mkdtempSync(
+			join(tmpdir(), "forge-catalog-normal-cleanup-"),
+		);
+		temporary.push(directory);
+		const groupFile = join(directory, "group.pid");
+		const descendantFile = join(directory, "descendant.pid");
+		const executablePath = executable(`
+echo $$ > "${groupFile}"
+printf '%s\\n' '${JSON.stringify(bundledCatalog())}'
+(trap '' TERM; while :; do sleep 1; done) >/dev/null 2>&1 &
+echo $! > "${descendantFile}"
+`);
+		try {
+			const result = await runBundledCatalog({
+				executable: executablePath,
+				timeoutMs: 2_000,
+				terminationGraceMs: 100,
+			});
+			expect(result.status).toBe(0);
+			expect(result.signal).toBe("SIGKILL");
+			expect(result.error).toBeNull();
+			const groupPid = Number(readFileSync(groupFile, "utf8"));
+			const descendantPid = Number(readFileSync(descendantFile, "utf8"));
+			expect(processGroupIsAlive(groupPid)).toBe(false);
+			expect(processIsAlive(descendantPid)).toBe(false);
+		} finally {
+			const groupPid = existsSync(groupFile)
+				? Number(readFileSync(groupFile, "utf8"))
+				: null;
+			const descendantPid = existsSync(descendantFile)
+				? Number(readFileSync(descendantFile, "utf8"))
+				: null;
+			if (groupPid) {
+				try {
+					process.kill(-groupPid, "SIGKILL");
+				} catch {}
+			}
+			if (descendantPid) {
+				try {
+					process.kill(descendantPid, "SIGKILL");
+				} catch {}
+			}
+		}
+	});
+
+	test("does not accept status zero when detached cleanup reports an error", async () => {
+		const executablePath = executable(
+			`printf '%s\\n' '${JSON.stringify(bundledCatalog())}'\n(sleep 30 >/dev/null 2>&1) &\nexit 0`,
+		);
+		const signalProcess = (pid, signal) => {
+			if (signal === 0) {
+				const error = new Error("cleanup probe failed");
+				error.code = "EIO";
+				throw error;
+			}
+			return process.kill(pid, signal);
+		};
+		const snapshot = await generateForgeCatalogSnapshot({
+			pluginRoot: PLUGIN,
+			executable: executablePath,
+			signalProcess,
+		});
+		expect(snapshot.source).toBe("checked-in-pinned");
+		expect(snapshot.diagnostic.reason).toBe("cleanup_error");
+		expect(snapshot.diagnostic.error).toBe("cleanup probe failed");
 	});
 
 	test("checked-in pin supplies all Forge V1 standard-Responses entries", async () => {
