@@ -304,65 +304,6 @@ function sedIsReadOnly(segment, commandIndex) {
 	return !expectsProgram;
 }
 
-const BENCHMARK_ENV = new Set([
-	"ARMS",
-	"EFFORTS",
-	"MODELS",
-	"RUN_ID",
-	"TASK",
-	"TASK_SET",
-	"TOKEN_BUDGET",
-	"TRIAL_CONCURRENCY",
-	"TRIAL_TOKEN_BUDGET",
-]);
-const BENCHMARK_OPTIONS = new Map([
-	["arms", "list"],
-	["efforts", "list"],
-	["models", "list"],
-	["run-id", "id"],
-	["task", "id"],
-	["task-set", "task-set"],
-	["token-budget", "number"],
-	["trial-token-budget", "number"],
-	["concurrency", "number"],
-]);
-
-function safeValue(kind, value) {
-	if (kind === "number") return /^[1-9][0-9]*$/.test(value);
-	if (kind === "task-set") return ["full", "screening"].includes(value);
-	if (kind === "list")
-		return /^[A-Za-z0-9][A-Za-z0-9_.-]*(?:,[A-Za-z0-9][A-Za-z0-9_.-]*)*$/.test(
-			value,
-		);
-	return /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(value);
-}
-
-function benchmarkEnvironment(segment) {
-	let index = 0;
-	while (index < segment.length) {
-		const item = segment[index];
-		if (item.quoted || !item.value.includes("=")) break;
-		const equals = item.value.indexOf("=");
-		const name = item.value.slice(0, equals);
-		const value = item.value.slice(equals + 1);
-		if (!BENCHMARK_ENV.has(name)) return null;
-		const kind = [
-			"TOKEN_BUDGET",
-			"TRIAL_CONCURRENCY",
-			"TRIAL_TOKEN_BUDGET",
-		].includes(name)
-			? "number"
-			: name === "TASK_SET"
-				? "task-set"
-				: ["ARMS", "EFFORTS", "MODELS"].includes(name)
-					? "list"
-					: "id";
-		if (!safeValue(kind, value)) return null;
-		index += 1;
-	}
-	return index;
-}
-
 function safeDockerValue(option, item) {
 	if (!item || /[`$]/.test(item.value) || /^[<>]\(/.test(item.value))
 		return false;
@@ -400,26 +341,7 @@ function supervisorCommand(segment) {
 		}
 		return true;
 	}
-	const index = benchmarkEnvironment(segment);
-	if (
-		index === null ||
-		segment[index]?.quoted ||
-		segment[index]?.value !== "bun"
-	)
-		return false;
-	if (
-		segment[index + 1]?.quoted ||
-		segment[index + 1]?.value !== "benchmarks/deepswe/run-matrix.mjs"
-	)
-		return false;
-	for (const item of segment.slice(index + 2)) {
-		if (item.quoted || /[`$]/.test(item.value) || /^[<>]\(/.test(item.value))
-			return false;
-		const option = item.value.match(/^--([a-z-]+)=(.+)$/);
-		if (!option || !BENCHMARK_OPTIONS.has(option[1])) return false;
-		if (!safeValue(BENCHMARK_OPTIONS.get(option[1]), option[2])) return false;
-	}
-	return true;
+	return false;
 }
 
 function segmentIsReadOnly(segment) {

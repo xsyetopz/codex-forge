@@ -81,6 +81,10 @@ function emptyState() {
 		reviewer: null,
 		integrity: "ok",
 		paused: false,
+		// Stop emits one terminal recovery instruction for a blocked session.
+		// Persisting this edge prevents the Stop hook from re-entering the same
+		// blocked response when the host retries the event.
+		stop_notice_emitted: false,
 		activated_at: Date.now(),
 		updated_at: Date.now(),
 	};
@@ -126,6 +130,8 @@ export function validState(value) {
 			(value.reviewer === null || value.reviewer.role === "forge-reviewer") &&
 			INTEGRITY_STATES.has(value.integrity ?? "ok") &&
 			(value.paused === undefined || typeof value.paused === "boolean") &&
+			(value.stop_notice_emitted === undefined ||
+				typeof value.stop_notice_emitted === "boolean") &&
 			typeof value.activated_at === "number" &&
 			typeof value.updated_at === "number" &&
 			(!["reviewed", "passed"].includes(value.phase) ||

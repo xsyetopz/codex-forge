@@ -10,14 +10,11 @@ prefix_rule(pattern=[[
 # bypass the filesystem sandbox.
 prefix_rule(pattern=["bun","test"], decision="allow", justification="[cf] Bun test execution is routine local validation.")
 prefix_rule(pattern=["bun","run",[
-  "test","test:isolated","validate:schemas","validate:skills","benchmark:deepswe"
+  "test","test:isolated","validate:schemas","validate:skills"
 ]], decision="allow", justification="[cf] Forge-owned Bun validation script.")
 prefix_rule(pattern=["bun","plugins/codex-forge/scripts/validate-schemas.mjs"], decision="allow", justification="[cf] Forge schema validation.")
 prefix_rule(pattern=["bun","plugins/codex-forge/skills/forge-skill-creator/scripts/check-skill.mjs"], decision="allow", justification="[cf] Forge skill validation.")
 prefix_rule(pattern=["bun","tests/test-isolated-runtime.mjs"], decision="allow", justification="[cf] Forge isolated-runtime validation.")
-prefix_rule(pattern=["bun",[
-  "benchmarks/deepswe/run-matrix.mjs","benchmarks/deepswe/summarize.mjs","benchmarks/deepswe/cleanup-job.mjs"
-]], decision="allow", justification="[cf] Bounded Forge DeepSWE execution, summary, or owned-container cleanup.")
 prefix_rule(pattern=["bunx","biome",["check","format","lint"]], decision="allow", justification="[cf] Biome repository validation or formatting.")
 prefix_rule(pattern=["node","--test"], decision="allow", justification="[cf] Node test execution is routine local validation.")
 prefix_rule(pattern=["deno",["test","check","lint","fmt"]], decision="allow", justification="[cf] Deno validation or formatting.")
@@ -35,7 +32,7 @@ prefix_rule(pattern=["dotnet",["test","build","format"]], decision="allow", just
 prefix_rule(pattern=[["mvn","mvnw","./mvnw"],["test","verify","package"]], decision="allow", justification="[cf] Maven build or test command.")
 prefix_rule(pattern=[["gradle","gradlew","./gradlew"],["test","check","build"]], decision="allow", justification="[cf] Gradle build or test command.")
 
-# Stock Codex 0.149.1 lowers simple shell command strings before evaluating rules. Complex shell
+# Stock Codex 0.151.0 lowers simple shell command strings before evaluating rules. Complex shell
 # strings can fall back to the outer wrapper as one opaque token, which cannot be constrained by
 # command-family prefixes. Keep that fallback approval-sensitive; direct validation calls match
 # the categorical rules above without granting arbitrary shell-string execution.

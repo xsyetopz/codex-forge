@@ -16,10 +16,17 @@ if (payload && isRoot(payload)) {
 			return { state: current, write: false };
 		if (["reviewed", "passed"].includes(current.phase))
 			return { state: current, write: false, value: { complete: true } };
+		if (current.phase === "blocked" && current.stop_notice_emitted === true)
+			return {
+				state: current,
+				write: false,
+				value: { already_notified: true },
+			};
+		const next = structuredClone(current);
+		if (next.phase === "blocked") next.stop_notice_emitted = true;
 		return {
-			state: current,
-			write: false,
-			value: { block: phaseRecovery(current) },
+			state: next,
+			value: { block: phaseRecovery(next) },
 		};
 	});
 	if (outcome.value?.complete) {
