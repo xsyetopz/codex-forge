@@ -7,7 +7,6 @@
 		"catalog:refresh": "bun plugins/codex-forge/scripts/installer/catalog.mjs --write=plugins/codex-forge/assets/model-catalog.json",
 		"test": "bun test tests/unit",
 		"test:isolated": "bun tests/test-isolated-runtime.mjs",
-		"benchmark:deepswe": "bun benchmarks/deepswe/run-matrix.mjs",
 		"validate:schemas": "bun plugins/codex-forge/scripts/validate-schemas.mjs",
 		"validate:skills": "bun plugins/codex-forge/skills/forge-skill-creator/scripts/check-skill.mjs plugins/codex-forge/skills/*"
 	},

@@ -30,7 +30,6 @@ describe("Forge execpolicy integration", () => {
 			["git", "status"],
 			["npm", "test"],
 			["cargo", "test"],
-			["bun", "test", "tests/unit/deepswe-benchmark.test.mjs"],
 			["bun", "run", "validate:schemas"],
 			["bunx", "biome", "format", "--write", "tests/unit"],
 			["node", "--test", "tests/unit/example.test.mjs"],
@@ -38,22 +37,6 @@ describe("Forge execpolicy integration", () => {
 			["swift", "test"],
 			["dotnet", "test"],
 			["./gradlew", "check"],
-			[
-				"bun",
-				"benchmarks/deepswe/run-matrix.mjs",
-				"--run-id=alpha3-smoke",
-				"--task=numba-stencil-boundary-modes",
-			],
-			[
-				"bun",
-				"benchmarks/deepswe/summarize.mjs",
-				"benchmarks/deepswe/results/jobs/example",
-			],
-			[
-				"bun",
-				"benchmarks/deepswe/cleanup-job.mjs",
-				"benchmarks/deepswe/results/jobs/example",
-			],
 		])
 			expect(decision(command)).toBe("allow");
 	});
