@@ -23,7 +23,7 @@ enforcement. `$forge-prompt-audit` is the workflow for instruction-layer edits.
 
 - `plugins/codex-forge/assets/model-instructions.md` is the replace identity
   (`model_instructions_file`). Positive phrasing only. Word count and SHA-256
-  are pinned in `tests/unit/repository-contracts.test.mjs`. Sentence order is
+  are pinned in `tests/unit/contracts/documentation.test.mjs`. Sentence order is
   GPT-5.6 Role → Goal → Success → Constraints → Tools → Output → Stop, without
   section labels. The user-requirement / stated-order sentence precedes
   “produce outcomes through the tools”.
@@ -41,6 +41,9 @@ enforcement. `$forge-prompt-audit` is the workflow for instruction-layer edits.
   Install copies the pinned complete `model_catalog_json`, whose Forge slugs
   use V1 and `use_responses_lite = false` (standard Responses, true replace).
   Details and citations are in the model-instruction audit.
-- Leave token-budget compaction unset on CLI 0.149.1.
+- Leave token-budget compaction unset on CLI 0.151.0. The 0.150.1 retained-image
+  budgeting fix and 0.151.0 nested-subagent goal accounting are upstream
+  improvements; neither supplies the durable checkpoint service required for
+  Forge to opt into token-budget resets.
 - After install or hook-definition changes, a fresh Codex thread and `/hooks`
   trust review are still required.

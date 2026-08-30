@@ -91,16 +91,15 @@ universal model-quality claim.
 | “Run relevant non-destructive validation” is broad. | Legitimate ambiguity | “Relevant” did not say whether a result could change the completion decision, so unnecessary suites remained compliant. | Select the smallest non-destructive validation whose result can materially discriminate the requested behavior. |
 | “Implement the enforcing or root cause” can overshoot a mechanical request. | Legitimate conditional conflict | A model could substitute an inferred architectural root cause even when the user specified the exact edit. | A specified mechanical request gets that literal change. Root-cause work is reserved for outcome-defined requests and must remain supported and in scope. |
 | “Implicit contract consequences” is expansive. | Legitimate undefined boundary | “Implicit” did not identify what evidence makes a consequence mandatory. | Include consequences mechanically implied by an established interface or invariant; keep speculative consequences outside scope. |
-| Default worker delegation adds overhead. | Legitimate measured tradeoff | A second context adds transfer and coordination cost, while role-specific model and effort routing can improve correctness. | Root delegates repository work to owning Forge roles; one exact operation with an immediate oracle remains a direct root action. DeepSWE reports the resulting pass/tool-call tradeoff. |
+| Default worker delegation adds overhead. | Legitimate measured tradeoff | A second context adds transfer and coordination cost, while role-specific model and effort routing can improve correctness. | Root delegates repository work to owning Forge roles; one exact operation with an immediate oracle remains a direct root action. |
 
 The first three risks are semantic ambiguities rather than unconditional logical
 contradictions. The fourth is an explicit orchestration tradeoff selected for
 alpha.4 and measured rather than assumed. The replacement file now contains the
 four enforced-boundary readings. Static contract tests pin those markers, the
 absence of named stock preamble/friendliness clauses, and a ban on negative
-constructions in both instruction layers. DeepSWE measures the resulting
-whole-trajectory effect; it cannot by itself attribute a pass or call reduction
-to one sentence, so component attribution remains an ablation question.
+constructions in both instruction layers. Component attribution remains an
+ablation question.
 
 ## Why leaving stock `default.md` is the wrong recommendation
 
@@ -142,9 +141,9 @@ That advice is wrong for a coding harness, including Forge, for five reasons.
 4. **“Do not rewrite all at once” is an attribution heuristic, not a reason to
    keep a known-bad identity.** Forge isolates the replacement in one file,
    keeps Forge-specific worker/reviewer protocol in `developer_instructions`,
-   and measures against stock with DeepSWE (the comparison arm leaves
-   `model_instructions_file` unset). That is the migration workflow the guide
-   actually asks for: one changed surface, a matched baseline.
+   and keeps the comparison arm conceptually separate from Forge's current
+   runtime design. That is the migration workflow the guide actually asks for:
+   one changed surface, a matched baseline.
 
 5. **Forge is the custom harness the conservative advice carves out.** A plugin
    that replaces personality, silence, validation, and orchestration is not a
@@ -172,9 +171,6 @@ Forge instead installs a pinned complete catalog with `use_responses_lite: false
 for the three GPT-5.6 slugs. This deliberately selects standard Responses,
 where the file is the replacement base layer, while also restamping
 multi-agent V1.
-
-The DeepSWE `forge-core` arm sets `model_instructions_file`. The comparison arm
-leaves that key unset so stock `default.md` remains the base layer.
 
 ## Stock `default.md` incentives
 
@@ -266,8 +262,8 @@ only identity, authority, evidence, scope, validation, authorization, and
 user-facing output boundaries. Forge-specific role routing remains in the
 developer layer.
 
-The accepted replacement is 245 whitespace-delimited words. Its SHA-256 is
-`c56fe1c16b0b54ea2571f23656eb5b0a997e54560c0c3aedc86c84e72264de50`. Sentence
+The accepted replacement is 283 whitespace-delimited words. Its SHA-256 is
+`75f044aab7a1e2f4450aca7e18736899f166feef7769da69c9e218119da4e535`. Sentence
 order follows the GPT-5.6 suggested prompt structure without section labels:
 Role, Goal (user requirements and stated order), Success, Constraints,
 Tools/evidence, Output, Stop. Personality is omitted. The user-requirement
@@ -292,6 +288,26 @@ renderer-specific formatting stay unstated.
 Prompt-only text does not enforce behavior. Hooks, `forge.rules`, role
 sandbox, and approval policy remain the hard layers. This file is the
 replacement identity that those layers assume.
+
+## Forge phase guidance (2026-08-27)
+
+Repeated visible `awaiting_worker` and `awaiting_reviewer` hook blocks showed
+that the root could attempt repository operations before selecting the next
+registered phase target. The narrow owner is `assets/developer-instructions.txt`:
+it now names both phases, the exactly-once V1 spawn calls, the
+worker-before-reviewer transition, worker retention through repair/recheck, and
+the same-reviewer repair cycle. The orchestration hooks retain deterministic
+phase enforcement as the backstop.
+
+The compact prompt remains phase-agnostic because its owner is durable
+continuation state, not live orchestration. The replace model-instruction file
+also remains unchanged: its positive, tool-agnostic base identity does not own
+Forge role sequencing, and its pinned word count/SHA contract stays intact.
+The developer layer was then streamlined so worker/reviewer retention and
+same-reviewer repair/recheck are each expressed once while preserving the
+phase, lifecycle, routing, fresh-context, polling, and hook contracts.
+The repository `AGENTS.md` records this ownership split for maintainers rather
+than injecting another runtime protocol into the installed session.
 
 ## Harness evidence (0.149.1-0.150.1 / GPT-5.6, 2026-08-27)
 
@@ -490,7 +506,7 @@ That session is not a license to add a flags-from-docs policy or the guide’s
 This audit is the long-form owner for instruction-layer and harness findings.
 [AGENTS.md](../AGENTS.md) is the index; [CONTRIBUTING.md](../CONTRIBUTING.md)
 is the change process. Word count and SHA-256 of `model-instructions.md` are
-pinned in `tests/unit/repository-contracts.test.mjs`, not in README prose.
+pinned in `tests/unit/contracts/documentation.test.mjs`, not in README prose.
 
 - Replace identity with `model_instructions_file`. Additive
   `developer_instructions` and repository `AGENTS.md` cannot cancel stock
@@ -513,3 +529,44 @@ pinned in `tests/unit/repository-contracts.test.mjs`, not in README prose.
 - `$CODEX_HOME/forge/model-instructions.md` and the installed pinned catalog
   update only on `install`, `revert`, or `--replace`. Editing a plugin asset
   does not change an already-installed Codex home.
+
+## Alpha.4 refresh for Codex CLI 0.151.0 (2026-08-29)
+
+The release boundary is now Codex CLI 0.151.0. The 0.150.1 retained-image
+compaction fix is included in the supported path; 0.151.0 additionally counts
+nested subagent usage against the root goal budget, honors per-repository
+plugin configuration in catalog requests, supports optional MCP startup grace,
+keeps ToolRouter and fallback state model-specific, and fixes permission,
+remote-sandbox, and MCP result/error restoration. These are native CLI
+behaviors, so Forge installs no duplicate flags or prompt rules. The complete
+release mapping is recorded in [the context-compaction findings](context-compaction-2026-08-24.md).
+
+The GPT-5.6 guidance was rechecked against the official
+[Prompting best practices](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.6#prompting-best-practices): favor leaner prompts, state each instruction once, keep autonomy and approval policy compact and in one place, preserve domain context/constraints/success criteria, route reasoning intentionally, and validate on representative tasks. The existing 283-word replacement and developer protocol retain required Forge contracts without adding another copy of those rules.
+
+Community reports in `docs/reddit/` are treated as product evidence where they
+include reproducible transcripts: prompt bloat, over-engineering at high or
+ultra effort, duplicated inherited context, hidden subagent fan-out, quota
+drain, and explicit scope boundaries are covered by the lean prompt, one-depth
+V1 orchestration, bounded active set, and validation ceiling. Reports proposing
+`model_context_window`, manual `auto_compact`, or global `features.multi_agent_v2`
+are not adopted: they are snippets rather than a verified 0.151.0 contract,
+and V2 would override the per-model V1 catalog choice and reject Forge's
+`fork_context=false` interface. The pinned V1/standard-Responses/replace
+contract therefore remains the durable alpha.4 design.
+
+## Acceptance-boundary wording (2026-08-29)
+
+The local 0.151.0 sample showed a child receiving inherited Forge instructions,
+then spending turns on orchestration denials while cumulative root accounting
+continued to rise. The lowest effective policy owner for incomplete requested
+delivery presented as a staged result is the model Goal slot: the runtime and
+hooks can gate lifecycle operations, while only the instruction layer can make
+the requested acceptance boundary govern ordinary implementation work.
+
+The Goal slot now states that every bounded requested outcome reaches its stated
+acceptance boundary in the current workstream, that sequencing names
+dependencies, and that concrete unsupported or external blockers remain visible
+as `UNVERIFIED` evidence. This is positive, general guidance; it does not add a
+versioned roadmap or a deterministic claim that prose alone can enforce
+completion. Hook/rule/config/schema owners remain unchanged.

@@ -38,7 +38,7 @@ When changing `model-instructions.md`:
 3. State each rule once. Do not widen a single observed failure into a policy
    that covers unrelated CLI, flag, or tool-use cases.
 4. Update the pinned word count and SHA-256 in
-   `tests/unit/repository-contracts.test.mjs`.
+   `tests/unit/contracts/documentation.test.mjs`.
 5. Record the observation in
    [docs/observational-evidence-2026-08-22.md](docs/observational-evidence-2026-08-22.md),
    map the failure in

@@ -49,7 +49,7 @@ This prompt is guidance, not deterministic storage. Its scope is the content and
 
 ### Lean Forge model instructions plus a developer layer
 
-Codex Forge 0.1.0-alpha.4 installs the lean 245-word Forge model-instruction layer from
+Codex Forge 0.1.0-alpha.4 installs the lean 283-word Forge model-instruction layer from
 `plugins/codex-forge/assets/model-instructions.md` to
 `$CODEX_HOME/forge/model-instructions.md` and points
 `model_instructions_file` at that exact target. Forge adds its runtime
@@ -69,7 +69,7 @@ the Forge model layer remains its consumer.
 
 Token-budget mode can be reconsidered when the target Codex version provides a durable checkpoint service in the active tool surface, the rollover guidance matches that service, and an integration test demonstrates that an unfinished task continues without user restatement.
 
-### Codex CLI 0.150.1 compatibility
+### Codex CLI 0.150.1 and 0.151.0 compatibility
 
 Codex CLI 0.150.1 keeps the compaction paths above and enables retained-image
 budgeting for remote compaction by default. Retained images now count against
@@ -81,14 +81,31 @@ pause/resume goal transition. See the
 and the tagged
 [`CompactionImageBudget` branch](https://github.com/openai/codex/blob/rust-v0.150.1/codex-rs/core/src/compact_remote_v2.rs#L308-L318).
 
+Codex CLI 0.151.0 preserves those compaction interfaces and counts nested
+subagent token usage against the root goal budget. That accounting makes the
+native goal ceiling more truthful for Forge's one-depth V1 delegation, while
+the retained-image behavior remains upstream-owned. The release also improves
+per-repository plugin catalog configuration, optional MCP startup grace,
+model-specific tool/fallback selection, permission and remote-sandbox
+restoration, and MCP result/error handling. Forge consumes these through the
+native CLI and does not duplicate them in prompts or speculative configuration.
+See the [0.151.0 release](https://github.com/openai/codex/releases/tag/rust-v0.151.0).
+
+The acceptance boundary remains unchanged: Forge leaves
+`features.token_budget` unset and uses deterministic root goal budgets plus
+standard summary-backed compaction. Neither 0.150.1 nor 0.151.0 provides the
+durable checkpoint service needed to make token-budget resets safe for an
+unfinished task, so manual `model_context_window` or `auto_compact` limits are
+not installed from community snippets.
+
 ## Ownership and regression protection
 
 | Concern | Canonical Forge owner | Verification |
 | --- | --- | --- |
-| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/config.mjs` | Installer test asserts that a fresh Forge configuration doesn't contain `features.token_budget`. |
+| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/owners/config.mjs` | Installer test asserts that a fresh Forge configuration doesn't contain `features.token_budget`. |
 | Produce a useful checkpoint | `assets/compact-prompt.md` | Installed asset mapping and repository contract validation; model quality remains behavioral evidence. |
-| Select lean Forge model instructions | `assets/model-instructions.md` and `scripts/installer/config.mjs` | Installer mapping, exact managed path, and repository contract validation. |
-| Add lean Forge developer instructions | `assets/developer-instructions.txt` and `scripts/installer/config.mjs` | Installed asset mapping and repository contract validation. |
+| Select lean Forge model instructions | `assets/model-instructions.md` and `scripts/installer/owners/config.mjs` | Installer mapping, exact managed path, and repository contract validation. |
+| Add lean Forge developer instructions | `assets/developer-instructions.txt` and `scripts/installer/owners/config.mjs` | Installed asset mapping and repository contract validation. |
 | Upgrade an existing installation | Installer managed-block replacement | Reinstall removed Forge's prior token-budget table while preserving unrelated user configuration. |
 
 ## Validation performed

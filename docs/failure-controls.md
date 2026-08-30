@@ -2,7 +2,7 @@
 
 This is an implementation cross-reference, not a validator schema. Each source failure is mapped to the lowest Forge layer that can materially address it. Prompt-only items aren't represented as hard runtime guarantees.
 
-For context continuity specifically, Forge selects standard summary-backed compaction in configuration, uses the compact prompt to produce the handoff, and uses base instructions to consume it. Token-budget context resets are disabled by default because Codex CLI 0.149.1 bypasses summarization on that path. See [context compaction findings](context-compaction-2026-08-24.md).
+For context continuity specifically, Forge selects standard summary-backed compaction in configuration, uses the compact prompt to produce the handoff, and uses base instructions to consume it. Token-budget context resets remain disabled because their fresh-window path lacks the durable checkpoint contract Forge requires; Codex CLI 0.150.1 retained-image accounting and 0.151.0 nested-goal accounting do not change that boundary. See [context compaction findings](context-compaction-2026-08-24.md).
 
 | Category | Failure | Forge control |
 | --- | --- | --- |
@@ -53,7 +53,8 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Tool use & execution | Stale current-thread background terminal | base current-thread lifecycle rule + developer exec-session ownership contract + returned session identifier |
 | Code & contract correctness | Interface-shape mismatch | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | One-sided contract edit | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
-| Code & contract correctness | Partial implementation presented as complete | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
+| Code & contract correctness | Partial implementation presented as complete | model instructions + applicable forge-* skill provide guidance/workflow; the repository contract test deterministically guards shipped instruction artifacts; live-model behavior remains UNVERIFIED unless a hook or rule enforces it |
+| Code & contract correctness | Staged version/phase presented as completion while a bounded requested outcome remains unfinished | model instructions provide current-workstream acceptance-boundary guidance; observational evidence is recorded in `observational-evidence-2026-08-22.md`; the repository contract test guards the shipped artifacts, while live-model behavior remains UNVERIFIED unless a hook or rule enforces it |
 | Code & contract correctness | Silent code loss | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Generated-source confusion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Wrapper-source confusion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
@@ -88,9 +89,10 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Audit recursion | base instructions + stop/completion contract |
 | Workflow & stopping | Failure-recovery blindness | base instructions + stop/completion contract |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
-| Workflow & stopping | Goal pause/block conflation | Codex 0.150.1 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear |
+| Workflow & stopping | Goal pause/block conflation | Codex 0.151.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
 | Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Duplicate multi-agent work | base instructions + PreToolUse spawn gate + max_depth |
+| Multi-agent & delegation | Root performs candidate operations before the registered worker/reviewer phase | developer phase protocol + orchestration PreToolUse gate |
 | Multi-agent & delegation | Conflicting parallel edits | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Subagent authority overtrust | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Coordination overhead exceeds value | base instructions + PreToolUse spawn gate + child-role agent disablement |

@@ -5,7 +5,8 @@ upgrading or restamping a version, or repairing installed files.
 
 > **Run recovery commands from a separate macOS Terminal window, not from
 > Codex.** This reference performs no actions automatically. The user-invoked
-> installer command performs the reinstall and cache-purge reporting.
+> recovery entrypoint performs the fail-closed reinstall and exact Forge-cache
+> cleanup.
 
 ## Close and verify Codex
 
@@ -55,14 +56,18 @@ FORGE_CHECKOUT="/path/to/current/codex-forge"
 test -f "$FORGE_CHECKOUT/install.mjs"
 cd "$FORGE_CHECKOUT"
 unset PLUGIN_ROOT
-bun install.mjs install --purge-cache
-bun install.mjs doctor --json
-# Or, from this same checkout: just reinstall-purge-cache && bun install.mjs doctor --json
+bun install.mjs reinstall
 ```
 
 The source checkout supplies the assets being installed. An installed cached
 root is never an upgrade source; an old state file alongside a newer cache is
-therefore not allowed to select either version.
+therefore not allowed to select either version. The `reinstall` command runs
+the validated uninstall/purge, supported plugin removal, exact Forge-cache
+cleanup, marketplace restamp, plugin add, installer restamp, and doctor in
+strict sequence. It checks Codex process liveness before the first mutation and
+immediately before every marketplace/plugin mutation; any failure stops later steps.
+Installer-side `--purge-cache` remains diagnostic-only because
+cross-process cache ownership cannot be proven.
 
 ## Same-version recovery and doctor
 
