@@ -1,3 +1,7 @@
+# CodeGraph repository initialization is an explicit user-owned decision. The hook and launcher
+# enforce the same boundary for shell forms that bypass this exact prefix.
+prefix_rule(pattern=["codegraph","init"], decision="forbidden", justification="[cf] Repository indexing starts only from an explicit user CodeGraph invocation outside Forge automation.")
+
 # Safe local inspection and build commands are allowed without an approval prompt.
 prefix_rule(pattern=[[
   "pwd","ls","rg","fd","cat","head","tail","sed","awk","wc","sort","uniq","cut","tr",
@@ -13,7 +17,6 @@ prefix_rule(pattern=["bun","run",[
   "test","test:isolated","validate:schemas","validate:skills"
 ]], decision="allow", justification="[cf] Forge-owned Bun validation script.")
 prefix_rule(pattern=["bun","plugins/codex-forge/scripts/validate-schemas.mjs"], decision="allow", justification="[cf] Forge schema validation.")
-prefix_rule(pattern=["bun","plugins/codex-forge/skills/forge-skill-creator/scripts/check-skill.mjs"], decision="allow", justification="[cf] Forge skill validation.")
 prefix_rule(pattern=["bun","tests/test-isolated-runtime.mjs"], decision="allow", justification="[cf] Forge isolated-runtime validation.")
 prefix_rule(pattern=["bunx","biome",["check","format","lint"]], decision="allow", justification="[cf] Biome repository validation or formatting.")
 prefix_rule(pattern=["node","--test"], decision="allow", justification="[cf] Node test execution is routine local validation.")

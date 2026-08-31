@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import {
 	chmodSync,
 	existsSync,
+	linkSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
@@ -9,14 +11,18 @@ import {
 	readFileSync,
 	readlinkSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { TOML } from "bun";
 import {
+	installGlobalAgents,
 	parseGlobalAgents,
+	recoverGlobalAgentsTransactions,
 	removeGlobalAgentsSection,
+	uninstallGlobalAgents,
 } from "../../../plugins/codex-forge/scripts/installer/owners/global-agents.mjs";
 import {
 	enumerateCodexProcesses,
@@ -432,6 +438,217 @@ describe("installer lifecycle", () => {
 		expect(install(home, "uninstall").exitCode).toBe(0);
 		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(original);
 	});
+	test("global AGENTS transformations preserve a 0600 mode", () => {
+		const { home } = fixture();
+		const target = join(home, "AGENTS.md");
+		writeFileSync(target, "user governance\n");
+		chmodSync(target, 0o600);
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		expect(lstatSync(target).mode & 0o777).toBe(0o600);
+		expect(install(home, "uninstall").exitCode).toBe(0);
+		expect(lstatSync(target).mode & 0o777).toBe(0o600);
+	});
+	test("install state checkpoint failure restores existing global AGENTS bytes and mode", () => {
+		const { home } = fixture();
+		const target = join(home, "AGENTS.md");
+		const original = "user governance\n";
+		writeFileSync(target, original);
+		chmodSync(target, 0o600);
+		const result = runInstaller(home, ["install", "--no-tools"], {
+			CODEX_FORGE_FAIL_ATOMIC_RENAME_PATH: "install-state.json",
+		});
+		expect(result.exitCode).toBe(2);
+		expect(readFileSync(target, "utf8")).toBe(original);
+		expect(lstatSync(target).mode & 0o777).toBe(0o600);
+		expect(existsSync(join(home, "forge", "install-state.json"))).toBe(false);
+	});
+	test("global transaction call sites record explicit install and uninstall ownership", () => {
+		const { home } = fixture();
+		const target = join(home, "AGENTS.md");
+		writeFileSync(target, "user governance\n");
+		const installResult = installGlobalAgents(
+			home,
+			join(ROOT, "plugins/codex-forge"),
+			{},
+			{},
+		);
+		const installTransaction = installResult.transaction;
+		const installRoot = readdirSync(home).find((name) =>
+			name.startsWith(".codex-forge-agents-"),
+		);
+		expect(installRoot).toBeString();
+		const installManifest = JSON.parse(
+			readFileSync(join(home, installRoot, "manifest"), "utf8"),
+		);
+		expect(installManifest.operation).toBe("install");
+		expect(installManifest.expected_global_agents).toEqual(
+			installResult.mapping,
+		);
+		installTransaction.rollback();
+		expect(readFileSync(target, "utf8")).toBe("user governance\n");
+		const committedInstall = installGlobalAgents(
+			home,
+			join(ROOT, "plugins/codex-forge"),
+			{},
+			{},
+		);
+		committedInstall.transaction.commit();
+		const state = { global_agents: committedInstall.mapping };
+		const uninstallTransaction = uninstallGlobalAgents(home, state, {
+			deferCommit: true,
+		});
+		const uninstallRoot = readdirSync(home).find((name) =>
+			name.startsWith(".codex-forge-agents-"),
+		);
+		const uninstallManifest = JSON.parse(
+			readFileSync(join(home, uninstallRoot, "manifest"), "utf8"),
+		);
+		expect(uninstallManifest.operation).toBe("uninstall");
+		expect(uninstallManifest.expected_global_agents).toEqual(
+			state.global_agents,
+		);
+		uninstallTransaction.rollback();
+	});
+	test("global AGENTS recovery rejects a broken quarantine-name collision", () => {
+		const { home } = fixture();
+		const target = join(home, "AGENTS.md");
+		writeFileSync(target, "user governance\n");
+		const collision = join(home, ".codex-forge-agents-collision");
+		symlinkSync(join(home, "does-not-exist"), collision);
+		expect(install(home, "install", "--no-tools").exitCode).toBe(2);
+		expect(lstatSync(collision).isSymbolicLink()).toBe(true);
+	});
+	test("global AGENTS recovery requires the exact state-anchored transaction ID", () => {
+		const { home } = fixture();
+		writeFileSync(join(home, "AGENTS.md"), "user governance\n");
+		let pending;
+		const result = installGlobalAgents(
+			home,
+			join(ROOT, "plugins/codex-forge"),
+			{},
+			{ onPending: (value) => (pending = value) },
+		);
+		const state = {
+			global_agents: result.mapping,
+			pending_global_agents_transaction: {
+				...pending,
+				id: `${pending.id}-forged`,
+			},
+		};
+		expect(() => recoverGlobalAgentsTransactions(home, state)).toThrow(
+			"not anchored by install state",
+		);
+		result.transaction.rollback();
+		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(
+			"user governance\n",
+		);
+	});
+	test("global AGENTS recovery rejects unanchored remnants without moving originals", () => {
+		const first = fixture();
+		const original = join(
+			first.home,
+			".codex-forge-agents-remnant",
+			"original",
+		);
+		mkdirSync(join(first.home, ".codex-forge-agents-remnant"), { mode: 0o700 });
+		writeFileSync(original, "recovered user file\n");
+		chmodSync(original, 0o600);
+		const firstStat = lstatSync(original);
+		const expected = {
+			source: "assets/AGENTS.md.patch",
+			target: join(first.home, "AGENTS.md"),
+			source_sha256: "0".repeat(64),
+			owned_sha256: "1".repeat(64),
+			unmanaged_sha256: "2".repeat(64),
+			pre_block_sha256: "3".repeat(64),
+			inserted_prefix: "",
+			previous_existed: false,
+		};
+		writeFileSync(
+			join(first.home, ".codex-forge-agents-remnant", "manifest"),
+			JSON.stringify({
+				version: 1,
+				operation: "install",
+				target: join(first.home, "AGENTS.md"),
+				expected_global_agents: expected,
+				original: {
+					dev: firstStat.dev,
+					ino: firstStat.ino,
+					sha256: createHash("sha256")
+						.update("recovered user file\n")
+						.digest("hex"),
+					mode: firstStat.mode & 0o7777,
+				},
+				result: { present: true },
+				published: null,
+			}) + "\n",
+		);
+		writeFileSync(
+			join(first.home, ".codex-forge-agents-remnant", "phase"),
+			"claimed\n",
+		);
+		chmodSync(
+			join(first.home, ".codex-forge-agents-remnant", "manifest"),
+			0o600,
+		);
+		chmodSync(join(first.home, ".codex-forge-agents-remnant", "phase"), 0o600);
+		expect(install(first.home, "install", "--no-tools").exitCode).toBe(2);
+		expect(readFileSync(original, "utf8")).toBe("recovered user file\n");
+		const second = fixture();
+		const occupied = join(
+			second.home,
+			".codex-forge-agents-remnant",
+			"original",
+		);
+		mkdirSync(join(second.home, ".codex-forge-agents-remnant"), {
+			mode: 0o700,
+		});
+		writeFileSync(occupied, "quarantined original\n");
+		chmodSync(occupied, 0o600);
+		const secondStat = lstatSync(occupied);
+		const expected2 = {
+			source: "assets/AGENTS.md.patch",
+			target: join(second.home, "AGENTS.md"),
+			source_sha256: "0".repeat(64),
+			owned_sha256: "1".repeat(64),
+			unmanaged_sha256: "2".repeat(64),
+			pre_block_sha256: "3".repeat(64),
+			inserted_prefix: "",
+			previous_existed: false,
+		};
+		writeFileSync(
+			join(second.home, ".codex-forge-agents-remnant", "manifest"),
+			JSON.stringify({
+				version: 1,
+				operation: "install",
+				target: join(second.home, "AGENTS.md"),
+				expected_global_agents: expected2,
+				original: {
+					dev: secondStat.dev,
+					ino: secondStat.ino,
+					sha256: createHash("sha256")
+						.update("quarantined original\n")
+						.digest("hex"),
+					mode: secondStat.mode & 0o7777,
+				},
+				result: { present: true },
+				published: null,
+			}) + "\n",
+		);
+		writeFileSync(
+			join(second.home, ".codex-forge-agents-remnant", "phase"),
+			"claimed\n",
+		);
+		chmodSync(
+			join(second.home, ".codex-forge-agents-remnant", "manifest"),
+			0o600,
+		);
+		chmodSync(join(second.home, ".codex-forge-agents-remnant", "phase"), 0o600);
+		writeFileSync(join(second.home, "AGENTS.md"), "occupied target\n");
+		const result = install(second.home, "install", "--no-tools");
+		expect(result.exitCode).toBe(2);
+		expect(result.stderr.toString()).toContain("manifest or phase is invalid");
+	});
 	test("revert replaces only the Forge global section and uninstall preserves user additions", () => {
 		const { home } = fixture();
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
@@ -553,6 +770,91 @@ describe("installer lifecycle", () => {
 		expect(readFileSync(join(home, "agents", "forge-worker.toml"))).toEqual(
 			workerBefore,
 		);
+	});
+	test("uninstall refuses a deterministic global AGENTS mutation after validation", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const configBefore = readFileSync(join(home, "config.toml"));
+		const workerBefore = readFileSync(
+			join(home, "agents", "forge-worker.toml"),
+		);
+		// The hook replaces the pathname after validation and before the claim.
+		const retried = runInstaller(home, ["uninstall"], {
+			CODEX_FORGE_MUTATE_GLOBAL_AGENTS_BEFORE_CLAIM: "1",
+		});
+		expect(retried.exitCode).toBe(2);
+		expect(retried.stderr.toString()).toContain("changed before path claim");
+		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(
+			"user mutation before claim\n",
+		);
+		expect(readFileSync(join(home, "config.toml"))).toEqual(configBefore);
+		expect(readFileSync(join(home, "agents", "forge-worker.toml"))).toEqual(
+			workerBefore,
+		);
+		expect(existsSync(join(home, "forge", "install-state.json"))).toBe(true);
+	});
+	test("install rejects a rename or symlink race before publishing global AGENTS", () => {
+		for (const mutation of ["rename", "symlink"]) {
+			const { home } = fixture();
+			const target = join(home, "AGENTS.md");
+			writeFileSync(target, "original user file\n");
+			const result = runInstaller(home, ["install", "--no-tools"], {
+				CODEX_FORGE_MUTATE_GLOBAL_AGENTS_BEFORE_CLAIM: mutation,
+			});
+			expect(result.exitCode).toBe(2);
+			expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toBe(
+				"replacement user file\n",
+			);
+			expect(readFileSync(join(home, "AGENTS.md.original"), "utf8")).toBe(
+				"original user file\n",
+			);
+		}
+	});
+	test("uninstall gives safe recovery guidance for a changed Forge block", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const target = join(home, "AGENTS.md");
+		writeFileSync(
+			target,
+			readFileSync(target, "utf8").replace(
+				"<!-- CODEX_FORGE_START -->",
+				"<!-- CODEX_FORGE_START -->\nuser edit",
+			),
+		);
+		const result = install(home, "uninstall");
+		expect(result.exitCode).toBe(2);
+		expect(result.stderr.toString()).toContain("Forge block hash conflict");
+		expect(result.stderr.toString()).toContain(
+			"restore/remove only that block",
+		);
+	});
+	test("uninstall rejects a hardlinked global AGENTS target", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const target = join(home, "AGENTS.md");
+		const alias = join(home, "AGENTS.alias.md");
+		linkSync(target, alias);
+		const result = install(home, "uninstall");
+		expect(result.exitCode).toBe(2);
+		expect(result.stderr.toString()).toContain("multiple hard links");
+		expect(readFileSync(alias, "utf8")).toContain("CODEX_FORGE_START");
+	});
+	test("uninstall never deletes a renamed or symlinked replacement path", () => {
+		for (const mutation of ["rename", "symlink"]) {
+			const { home } = fixture();
+			expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+			const result = runInstaller(home, ["uninstall"], {
+				CODEX_FORGE_MUTATE_GLOBAL_AGENTS_BEFORE_CLAIM: mutation,
+			});
+			expect(result.exitCode).toBe(2);
+			expect(result.stderr.toString()).toMatch(
+				/changed before path claim|claim is not an exclusive regular file/,
+			);
+			const replacement = "AGENTS.md";
+			expect(readFileSync(join(home, replacement), "utf8")).toBe(
+				"replacement user file\n",
+			);
+		}
 	});
 	test("round-trips a preexisting AGENTS file without a trailing newline", () => {
 		const { home } = fixture();

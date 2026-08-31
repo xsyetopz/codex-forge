@@ -17,6 +17,7 @@ import {
 	runInstaller,
 	snapshotTree,
 	symlinkSync,
+	unlinkSync,
 	writeFileSync,
 } from "./support.mjs";
 
@@ -251,6 +252,93 @@ describe("installer sequencing", () => {
 		expect(at("plugin add codex-forge@codex-forge")).toBeLessThan(
 			at("install.mjs doctor --json"),
 		);
+	});
+	test("reinstall reconciles a stale global AGENTS mapping location when its block proves Forge ownership", () => {
+		const { root, home } = fixture();
+		writeFileSync(join(home, "AGENTS.md"), "user-owned guidance\n");
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const statePath = join(home, "forge", "install-state.json");
+		const state = JSON.parse(readFileSync(statePath, "utf8"));
+		state.global_agents.target = join(home, "stale-home", "AGENTS.md");
+		state.global_agents.source = "legacy/AGENTS.md.patch";
+		writeFileSync(statePath, `${JSON.stringify(state)}\n`);
+		const fake = fakeCodex(root);
+		const result = runInstaller(home, ["reinstall"], {
+			PATH: `${fake.bin}${delimiter}${process.env.PATH}`,
+			BUN_BIN: fake.bun,
+			CODEX_REINSTALL_LOG: fake.log,
+		});
+		expect(result.exitCode, result.stderr.toString()).toBe(0);
+		expect(readFileSync(join(home, "AGENTS.md"), "utf8")).toContain(
+			"user-owned guidance",
+		);
+	});
+	test("reinstall reports an actionable conflict for a genuinely unmanaged global AGENTS mapping", () => {
+		const { root, home } = fixture();
+		writeFileSync(join(home, "AGENTS.md"), "user-owned guidance\n");
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const statePath = join(home, "forge", "install-state.json");
+		const state = JSON.parse(readFileSync(statePath, "utf8"));
+		state.global_agents.target = join(home, "unmanaged", "AGENTS.md");
+		writeFileSync(join(home, "AGENTS.md"), "user-owned guidance\n");
+		writeFileSync(statePath, `${JSON.stringify(state)}\n`);
+		const fake = fakeCodex(root);
+		const before = readFileSync(join(home, "AGENTS.md"));
+		const result = runInstaller(home, ["reinstall"], {
+			PATH: `${fake.bin}${delimiter}${process.env.PATH}`,
+			BUN_BIN: fake.bun,
+			CODEX_REINSTALL_LOG: fake.log,
+		});
+		expect(result.exitCode).toBe(2);
+		expect(result.stderr.toString()).toContain("metadata drift");
+		expect(readFileSync(join(home, "AGENTS.md"))).toEqual(before);
+		expect(readFileSync(fake.log, "utf8")).not.toContain("plugin remove");
+	});
+	test("reinstall rejects a symlinked install state before reconciliation", () => {
+		const { root, home } = fixture();
+		writeFileSync(join(home, "AGENTS.md"), "user-owned guidance\n");
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const statePath = join(home, "forge", "install-state.json");
+		const outside = join(root, "state-backup.json");
+		const saved = readFileSync(statePath);
+		writeFileSync(outside, saved);
+		unlinkSync(statePath);
+		symlinkSync(outside, statePath);
+		const fake = fakeCodex(root);
+		const result = runInstaller(home, ["reinstall"], {
+			PATH: `${fake.bin}${delimiter}${process.env.PATH}`,
+			BUN_BIN: fake.bun,
+			CODEX_REINSTALL_LOG: fake.log,
+		});
+		expect(result.exitCode).toBe(2);
+		expect(result.stderr.toString()).toContain("symlink");
+		expect(readFileSync(outside)).toEqual(saved);
+		expect(readFileSync(fake.log, "utf8")).not.toContain("plugin remove");
+	});
+	test("reinstall rolls back reconciled metadata when uninstall fails", async () => {
+		const { root, home } = fixture();
+		writeFileSync(join(home, "AGENTS.md"), "user-owned guidance\n");
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const statePath = join(home, "forge", "install-state.json");
+		const state = JSON.parse(readFileSync(statePath, "utf8"));
+		state.global_agents.target = join(home, "stale-home", "AGENTS.md");
+		const stale = `${JSON.stringify(state)}\n`;
+		writeFileSync(statePath, stale);
+		const fake = fakeCodex(root);
+		let error;
+		try {
+			await runInjected(
+				home,
+				root,
+				{ uninstallUnlocked: async () => 7 },
+				{ CODEX_REINSTALL_LOG: fake.log },
+			);
+		} catch (caught) {
+			error = caught;
+		}
+		expect(error?.message).toContain("uninstall phase failed");
+		const reconciled = JSON.parse(readFileSync(statePath, "utf8"));
+		expect(reconciled.global_agents.target).toBe(join(home, "AGENTS.md"));
 	});
 	test("reinstall blocks active Codex for a freshly selected isolated home", () => {
 		const { root } = fixture();

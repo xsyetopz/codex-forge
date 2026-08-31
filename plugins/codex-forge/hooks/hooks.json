@@ -1,55 +1,19 @@
 {
-	"description": "Codex Forge lifecycle context and deterministic safety guardrails.",
+	"description": "Codex Forge continuity context and focused safety guardrails.",
 	"hooks": {
 		"SessionStart": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/session-start.mjs\"",
-						"timeout": 10
-					},
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-start/restore-continuity.mjs\"",
 						"timeout": 10,
-						"additionalContextLimit": 256
+						"additionalContextLimit": 4096
 					}
 				]
 			}
 		],
 		"PreToolUse": [
-			{
-				"matcher": "*",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/pre-tool-use.mjs\"",
-						"timeout": 10
-					}
-				]
-			},
-			{
-				"matcher": "^Bash$",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-sandbox-cache.mjs\"",
-						"timeout": 10
-					},
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-safe-shell-commands.mjs\"",
-						"timeout": 10
-					},
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs\"",
-						"timeout": 10,
-						"additionalContextLimit": 100
-					}
-				]
-			},
 			{
 				"matcher": "^Agent$",
 				"hooks": [
@@ -61,12 +25,24 @@
 				]
 			},
 			{
-				"matcher": "^multi_agent_v1wait_agent$",
+				"matcher": "^multi_agent_v1(?:__|[._:-])?spawn_agent$",
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-long-agent-wait.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\"",
 						"timeout": 10
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/user-prompt-submit/preserve-raw.mjs\"",
+						"timeout": 10,
+						"additionalContextLimit": 128
 					}
 				]
 			}
@@ -77,14 +53,9 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-boundary-context.mjs\"",
 						"timeout": 10,
 						"additionalContextLimit": 100
-					},
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-start.mjs\"",
-						"timeout": 10
 					}
 				]
 			}
@@ -95,18 +66,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-stop.mjs\"",
-						"timeout": 10
-					}
-				]
-			}
-		],
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/stop.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-stop/record-handoff.mjs\"",
 						"timeout": 10
 					}
 				]
@@ -117,7 +77,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/orchestration/session-end.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/session-end/clear-continuity.mjs\"",
 						"timeout": 3
 					}
 				]

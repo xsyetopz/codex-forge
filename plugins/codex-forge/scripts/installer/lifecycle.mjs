@@ -31,6 +31,7 @@ import {
 import {
 	globalAgentsTarget,
 	installGlobalAgents,
+	recoverGlobalAgentsTransactions,
 	revertGlobalAgents,
 	uninstallGlobalAgents,
 	validateGlobalAgentsTarget,
@@ -135,6 +136,7 @@ async function installUnlocked(options) {
 	);
 	let backup;
 	let state;
+	let globalAgentsTransaction;
 	try {
 		backup = nextBackup(home);
 		mkdirSync(dirname(backup), { recursive: true });
@@ -143,9 +145,28 @@ async function installUnlocked(options) {
 		const mappings = installFiles(home, PLUGIN_ROOT, backup, priorState, {
 			force: options.replace,
 		});
-		const globalAgents = installGlobalAgents(home, PLUGIN_ROOT, priorState, {
-			force: options.replace,
-		});
+		const globalAgentsResult = installGlobalAgents(
+			home,
+			PLUGIN_ROOT,
+			priorState,
+			{
+				force: options.replace,
+				onPending: (pending) => {
+					mkdirSync(dirname(statePath), { recursive: true });
+					writeAtomic(
+						statePath,
+						`${JSON.stringify({ ...priorState, pending_global_agents_transaction: pending }, null, 2)}\n`,
+					);
+				},
+				clearPending: () => {
+					const currentState = existsSync(statePath) ? readJson(statePath) : {};
+					delete currentState.pending_global_agents_transaction;
+					writeAtomic(statePath, `${JSON.stringify(currentState, null, 2)}\n`);
+				},
+			},
+		);
+		const globalAgents = globalAgentsResult.mapping ?? globalAgentsResult;
+		globalAgentsTransaction = globalAgentsResult.transaction;
 		const preserveFrom = hasRestorablePriorConfig ? old : current;
 		const maxConcurrentThreads =
 			priorConfigUnchanged &&
@@ -172,6 +193,9 @@ async function installUnlocked(options) {
 			files: mappings.map((item) => item.target),
 			file_mappings: mappings,
 			global_agents: globalAgents,
+			...(globalAgentsTransaction?.receipt
+				? { global_agents_transaction_receipt: globalAgentsTransaction.receipt }
+				: {}),
 			created_tables: createdTables,
 		};
 		mkdirSync(dirname(statePath), { recursive: true });
@@ -181,7 +205,25 @@ async function installUnlocked(options) {
 			process.env.CODEX_FORGE_FAIL_INSTALL_AT === "after-state"
 		)
 			throw new Error("forced install failure after state write");
+		if (globalAgentsTransaction) globalAgentsTransaction.commit();
+		if (globalAgentsTransaction?.receipt) {
+			delete state.global_agents_transaction_receipt;
+			writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
+		}
 	} catch (error) {
+		if (globalAgentsTransaction) {
+			try {
+				globalAgentsTransaction.rollback();
+			} catch (rollbackError) {
+				process.stderr.write(`[cf] ${rollbackError.message}\n`);
+				return 2;
+			}
+		}
+		if (
+			error?.message?.includes("global AGENTS.md") &&
+			error?.message?.includes("quarantine")
+		)
+			snapshot.delete(globalAgentsTarget(home));
 		restoreSnapshot(snapshot);
 		if (backup) rmSync(backup, { recursive: true, force: true });
 		removeFreshEmptyDirectories(transactionDirectories, existingDirectories);
@@ -210,11 +252,45 @@ async function uninstallUnlocked(options) {
 	const home = codexHome();
 	const configPath = join(home, "config.toml");
 	const statePath = join(home, "forge", "install-state.json");
+	let globalAgentsTransaction;
 	assertRegularFile(statePath, "installation state", home);
 	const state = readJson(statePath);
 	validateInstallationState(home, state);
+	recoverGlobalAgentsTransactions(home, state);
 	if (state.global_agents)
 		validateGlobalAgentsTarget(home, state.global_agents);
+	// Claim and complete the global AGENTS transaction before touching config or
+	// mapped files. Ownership/race failures therefore leave the install intact.
+	if (state.global_agents)
+		globalAgentsTransaction = uninstallGlobalAgents(home, state, {
+			force: options.purge,
+			deferCommit: true,
+			onPending: (pending) => {
+				state.pending_global_agents_transaction = pending;
+				writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
+			},
+			clearPending: () => {
+				const currentState = readJson(statePath);
+				delete currentState.pending_global_agents_transaction;
+				writeAtomic(statePath, `${JSON.stringify(currentState, null, 2)}\n`);
+			},
+		});
+	if (state.global_agents) {
+		// Persist the completed global-file step before later config/file work so
+		// a later failure does not claim that Forge still owns the block.
+		try {
+			delete state.global_agents;
+			delete state.pending_global_agents_transaction;
+			state.global_agents_transaction_receipt = globalAgentsTransaction.receipt;
+			writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
+			globalAgentsTransaction.commit();
+			delete state.global_agents_transaction_receipt;
+			writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
+		} catch (error) {
+			globalAgentsTransaction.rollback();
+			throw error;
+		}
+	}
 	const current = existsSync(configPath)
 		? readFileSync(configPath, "utf8")
 		: "";
@@ -237,7 +313,6 @@ async function uninstallUnlocked(options) {
 			);
 	}
 	uninstallFiles(home, state, { force: options.purge });
-	uninstallGlobalAgents(home, state, { force: options.purge });
 	rmSync(statePath, { force: true });
 	let pluginsRemoved = true;
 	if (options.purge) {

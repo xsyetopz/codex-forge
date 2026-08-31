@@ -1,6 +1,0 @@
-interface:
-  display_name: "Forge Prompt Audit"
-  short_description: "Audit agent instruction and hook ownership"
-  default_prompt: "Use $forge-prompt-audit to audit these agent instructions and enforcement layers."
-policy:
-  allow_implicit_invocation: false

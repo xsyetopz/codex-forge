@@ -40,11 +40,11 @@ When changing `model-instructions.md`:
 4. Update the pinned word count and SHA-256 in
    `tests/unit/contracts/documentation.test.mjs`.
 5. Record the observation in
-   [docs/observational-evidence-2026-08-22.md](docs/observational-evidence-2026-08-22.md),
+   [session evidence](docs/evidence/session-observations.md),
    map the failure in
-   [docs/failure-controls.md](docs/failure-controls.md), and put the rationale
+   [failure controls](docs/reference/failure-controls.md), and put the rationale
    in
-   [docs/model-instruction-audit-2026-08-24.md](docs/model-instruction-audit-2026-08-24.md).
+   [model instruction evidence](docs/evidence/model-instructions.md).
 
 Role files must not gain `model_instructions_file`. Codex copies the parent
 session’s base instructions into children and drops that key from role

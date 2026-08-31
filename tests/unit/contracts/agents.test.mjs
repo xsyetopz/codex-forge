@@ -12,6 +12,9 @@ test("tool and policy sources retain bounded ownership", () => {
 	expect(tools.indexOf('["pnpm"')).toBeLessThan(tools.indexOf('["yarn"'));
 	expect(tools.indexOf('["yarn"')).toBeLessThan(tools.indexOf('["npm"'));
 	const rules = read(join(PLUGIN, "assets", "forge.rules"));
+	expect(rules).toContain(
+		'prefix_rule(pattern=["codegraph","init"], decision="forbidden"',
+	);
 	expect(rules).not.toContain('prefix_rule(pattern=["git"], decision="allow"');
 	expect(rules).toContain(
 		'prefix_rule(pattern=["npm","publish"], decision="prompt"',
@@ -30,10 +33,12 @@ test("registered agent role contracts remain bounded", () => {
 	);
 	expect(roles.length).toBeGreaterThanOrEqual(9);
 	for (const name of roles) {
-		const role = TOML.parse(read(join(PLUGIN, "agents", name)));
+		const raw = read(join(PLUGIN, "agents", name));
+		const role = TOML.parse(raw);
 		expect(role.name).toBe(name.slice(0, -5));
 		expect(role.description).toBe(descriptions[role.name]);
 		expect(role.developer_instructions).toBeTruthy();
+		expect(raw).toContain('developer_instructions = """\n');
 		expect(role.service_tier).toBe("flex");
 		expect(role.features?.multi_agent_v2).toBeUndefined();
 	}
@@ -43,26 +48,11 @@ test("registered agent role contracts remain bounded", () => {
 	const reviewer = TOML.parse(
 		read(join(PLUGIN, "agents", "forge-reviewer.toml")),
 	);
-	const pollGuidance =
-		"For empty process-continuation polls, use `yield_time_ms=30000`; interactive writes proceed immediately.";
-	expect(reviewer.developer_instructions).toContain(pollGuidance);
-	expect(reviewer.developer_instructions).toContain(
-		"Finish with exactly one terminal result line",
-	);
-	expect(reviewer.developer_instructions).toContain(
-		"`FORGE_REVIEW_RESULT: pass`",
-	);
-	expect(reviewer.developer_instructions).toContain(
-		"`FORGE_REVIEW_RESULT: fail`",
-	);
+	expect(reviewer.developer_instructions).toContain("frozen candidate");
+	expect(reviewer.developer_instructions).toContain("pass/fail verdict");
 	const worker = TOML.parse(read(join(PLUGIN, "agents", "forge-worker.toml")));
-	expect(worker.developer_instructions).toContain(pollGuidance);
 	expect(worker.model).toBe("gpt-5.6-luna");
 	expect(worker.model_reasoning_effort).toBe("medium");
-	expect(
-		TOML.parse(read(join(PLUGIN, "agents", "forge-scout.toml")))
-			.model_reasoning_effort,
-	).toBe("low");
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-retriever.toml")))
 			.model_reasoning_effort,
@@ -75,7 +65,7 @@ test("registered agent role contracts remain bounded", () => {
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-hard-worker.toml")))
 			.model_reasoning_effort,
-	).toBe("xhigh");
+	).toBe("high");
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-tail-reviewer.toml")))
 			.model_reasoning_effort,
@@ -83,4 +73,14 @@ test("registered agent role contracts remain bounded", () => {
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-retriever.toml"))).model,
 	).toBe("gpt-5.6-terra");
+	const repoIntelligence = TOML.parse(
+		read(join(PLUGIN, "agents", "forge-repo-intelligence.toml")),
+	);
+	expect(repoIntelligence.model).toBe("gpt-5.6-terra");
+	expect(repoIntelligence.sandbox_mode).toBe("workspace-write");
+	expect(repoIntelligence.developer_instructions).toContain("codegraph sync");
+	expect(repoIntelligence.developer_instructions).toContain(
+		"CodeGraph CLI first",
+	);
+	expect(roles).not.toContain("forge-scout.toml");
 });

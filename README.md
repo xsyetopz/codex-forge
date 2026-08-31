@@ -1,42 +1,20 @@
 # Codex Forge
 
-Codex Forge is a Codex CLI plugin that packages focused engineering skills, guarded hooks, explicit agent roles, and managed user configuration.
+Codex Forge is a Codex CLI 0.151.0 plugin and installer. It supplies a lean
+replacement model identity, task-shaped agent roles, focused continuity hooks,
+a pinned model catalog, CodeGraph integration, and transactional user-level
+configuration. Codex remains the owner of approvals, sandboxing, agent
+cancellation, and agent lifecycle.
 
-It extends the native `codex` workflow; it doesn't install a wrapper or replace Codex's own approval and sandbox controls.
+Maintainers start with [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md),
+and the [documentation index](docs/README.md).
 
-## Contents
-
-- [Install Codex Forge](#install-codex-forge)
-- [Reinstall and cache recovery](docs/reinstall-recovery.md)
-- [Use Codex Forge](#use-codex-forge)
-- [Manage the installation](#manage-the-installation)
-- [Permission model](#permission-model)
-- [Agent routing](#agent-routing)
-- [Context continuity](#context-continuity)
-- [CodeGraph](#codegraph)
-- [Git marketplace](#git-marketplace)
-- [Validate changes](#validate-changes)
-- [Design evidence](#design-evidence)
-- [License](#license)
-
-Agents and contributors working in this repository should start from
-[AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
-The repository-root `AGENTS.md` is maintainer governance; installation manages
-the separate user-level `$CODEX_HOME/AGENTS.md` section.
-
-## Install Codex Forge
+## Install
 
 Prerequisites: Codex CLI 0.151.0 and Bun 1.4 or newer.
 
-Before adding, removing, upgrading, or version-restamping the plugin, close
-every Codex CLI/app session and fully terminate the Codex app server. A loaded
-session can retain a versioned plugin root while the installer changes the
-cache; Forge cannot prove that root is unused across processes.
-
-For the macOS close, verification, escalation, reinstall, fresh-thread, hook
-trust, and V1 verification procedure, see [Reinstall and cache recovery](docs/reinstall-recovery.md).
-
-From the repository root:
+Close all Codex CLI/app sessions and the app server before installation,
+upgrade, removal, or version restamping. Then run:
 
 ```sh
 codex plugin marketplace add .
@@ -44,171 +22,140 @@ codex plugin add codex-forge@codex-forge
 bun install.mjs install
 ```
 
-The first two commands install the plugin. The final command merges Forge-owned settings into `$CODEX_HOME/config.toml` (`~/.codex` by default), appends the Forge-owned section to `$CODEX_HOME/AGENTS.md`, copies the pinned agent/rule/prompt/catalog assets, records SHA-256 mappings, and creates a timestamped backup. Unrelated configuration and pre-existing AGENTS content are preserved.
+Start a fresh thread, run `/hooks`, review every Forge command, and trust the
+current hashes. Hook trust remains `UNVERIFIED` until this manual review.
 
-Start a fresh Codex thread after installation. Run `/hooks`, review the exact Forge commands, and explicitly trust them in Codex. The plugin registers its hooks while Codex keeps the default-on hook runtime and owns trust review; `doctor` reports hook trust as `UNVERIFIED` until that review is complete.
+The installer merges its marked configuration into `$CODEX_HOME/config.toml`,
+manages one marked section in `$CODEX_HOME/AGENTS.md`, copies Forge-owned
+assets, records SHA-256 mappings, and creates a timestamped backup. Unrelated
+configuration and pre-existing AGENTS content are preserved.
 
-## Use Codex Forge
+See [reinstall and cache recovery](docs/operations/reinstall-recovery.md) for
+the shutdown, recovery, and V1 verification procedure.
 
-Use Codex normally and select a focused workflow when it matches the task:
-
-```text
-$forge-deliver implement this bounded change and run the affected tests
-```
-
-Available skills:
-
-| Skill | Purpose |
-| --- | --- |
-| `forge-deliver` | Features, fixes, refactoring, and dependency migration |
-| `forge-debug` | Evidence-led root-cause and performance diagnosis |
-| `forge-review` | Code review, test design, and UI verification |
-| `forge-research` | Current technical research with primary sources |
-| `forge-setup` | Installation, repair, inspection, and uninstall |
-| `forge-prompt-audit` | Instruction, hook, and prompt ownership audits |
-| `forge-skill-creator` | Agent Skill creation, restructuring, and deterministic package validation |
-
-Each `SKILL.md` keeps its shared workflow and high-value gotchas resident. It links directly to focused `references/` files at the step where branch-specific detail becomes relevant.
-
-Forge workflow skills use Codex-native discovery. Each skill declares
-`policy.allow_implicit_invocation = false`, so ordinary tasks keep Forge
-workflows unloaded on the normal Codex path and explicit `$forge-*` selectors
-activate a Forge workflow.
-Host skill loading uses Codex-native filesystem loading through the plugin's
-skill directory.
-
-## Manage the installation
+## Manage
 
 ```sh
 bun install.mjs doctor
 bun install.mjs doctor --json
 bun install.mjs install --replace --purge-cache
+bun install.mjs reinstall
 bun install.mjs revert
 bun install.mjs uninstall
 bun install.mjs uninstall --purge
 ```
 
-For a full plugin-cache clean and reinstall, run the fail-closed existing
-installer command from a separate terminal after shutdown:
-
-```sh
-bun install.mjs reinstall
-```
-
-See [Reinstall and cache recovery](docs/reinstall-recovery.md);
-`--purge-cache` is intentionally diagnostic-only.
-
-- `install --no-tools` skips optional CLI-helper installation.
-- Reinstall preserves mapped files changed locally; `--replace` deliberately replaces those overrides.
+- `install --replace` deliberately replaces changed Forge-managed copies.
 - `revert` restores current plugin sources over mapped targets.
-- `uninstall` restores unchanged preexisting targets and removes unchanged Forge-created targets.
-- The installer creates or updates only the marked Forge section in `$CODEX_HOME/AGENTS.md`; a newly created file is titled `# AGENTS.md`, and uninstall preserves pre-existing content.
-- `uninstall --purge` also removes plugin registrations, overrides, and backup history. Cached plugin roots are retained conservatively because cross-process ownership is `UNVERIFIED`; `reinstall` performs exact Forge-root cleanup only after supported plugin removal.
-- `install --purge-cache` reports stale cached versions but does not delete them; `reinstall` performs exact Forge-cache cleanup after supported plugin removal.
-- The installer refuses file or registration changes when its process inspection finds a Codex CLI/app or app-server process; close all Codex sessions and the app server first.
+- `uninstall` restores unchanged pre-existing targets and removes unchanged
+  Forge-created targets.
+- `uninstall --purge` also removes registration, overrides, and backup history.
+- Cache deletion remains conservative when another process could retain a
+  versioned plugin root.
+- Installer mutations fail closed while Codex processes are active.
 
-## Permission model
+The explicit `$forge-setup` skill covers installation, inspection, repair, and
+uninstall. Ordinary software work uses Codex directly with the installed model
+identity and roles; Forge no longer duplicates generic delivery, debugging,
+review, research, or skill-authoring workflows.
 
-Forge configures ordinary Codex work for `approval_policy = "on-request"` and `sandbox_mode = "workspace-write"`. External/public writes remain approval-sensitive. A dedicated PreToolUse hook and `forge.rules` deny recognized catastrophic commands even when other approval boundaries are relaxed.
+## Runtime design
 
-The shell backstop is intentionally bounded. It recognizes documented wrappers, operators, destructive Git forms, broad recursive deletion, privilege escalation, host power commands, and download-to-shell pipelines. It doesn't claim complete shell-language or OS-sandbox coverage. Stock `codex --yolo` remains dangerous and should be limited to externally protected or disposable environments.
+### Model instructions
 
-## Agent routing
+Forge installs a lean 290-word replacement at
+`$CODEX_HOME/forge/model-instructions.md` and selects it with
+`model_instructions_file`. Its sentence order follows GPT-5.6 guidance: Role →
+Goal → Success → Constraints → Tools → Output → Stop. Forge intentionally
+overrides Codex's stock `default.md`; additive developer instructions cannot
+remove stock identity clauses.
 
-Codex Forge 0.1.0-alpha.4 targets Codex's legacy multi-agent V1 path. Codex defaults provide
-the runtime; Forge installs standalone TOML definitions under
-`$CODEX_HOME/agents/`, Codex discovers them as custom roles, and each role
-declares its own `model` and `model_reasoning_effort`. Fresh children use
-`fork_context=false`. The root uses Sol for supervision, architecture,
-ambiguous diagnosis, and semantic judgment. Registered leaf roles use Luna for
-bounded work, Terra for justified long-context retrieval, and Sol for hard-tail
-review. Ordinary root, planning, worker, retrieval, architecture, debugging, and
-review work starts at medium effort; bounded scouting uses Luna low, while the
-explicit hard-worker and tail-reviewer roles reserve xhigh for demonstrated hard
-tails. The bounded-change flow uses one worker followed by one reviewer;
-parallel writers require disjoint ownership, and Forge children stay at one
-depth.
+The pinned full model catalog sets Forge GPT-5.6 entries to
+`use_responses_lite = false`, so standard Responses uses the configured base
+instructions as the replacement layer. See [model instruction evidence](docs/evidence/model-instructions.md)
+and the [0.151.0 source audit](docs/evidence/codex-cli-0.151.0.md).
 
-Route by acceptance surface rather than task count: Luna roles fit explicit
-contracts with local blast radius, decisive oracles, and cheap rollback. Use
-Sol architecture, debugger, or reviewer roles when requirements are ambiguous,
-changes cross system boundaries, or semantic review must reconstruct intent.
+### Agent routing
 
-Codex's default-on `multi_agent` and `hooks` features remain active, so Forge
-leaves those keys at their native defaults rather than redundantly configuring
-them. `features.multi_agent_v2` stays unset: the flag is stable and disabled by
-default on Codex installs. Enabling it globally forces the V2 spawn surface,
-which defaults `hide_spawn_agent_metadata` and treats an omitted `fork_turns`
-as a full-history fork. See [the model-instruction audit](docs/model-instruction-audit-2026-08-24.md).
-Install copies the checked-in pinned catalog to
-`$CODEX_HOME/forge/model-catalog.json` and points `model_catalog_json` at it.
-That complete catalog restamps Forge slugs to
-`multi_agent_version = "v1"` and `use_responses_lite = false`. Standard
-Responses then treats `model_instructions_file` as the replacement base layer.
+Forge uses registered multi-agent V1 roles. `features.multi_agent_v2` stays
+unset; the pinned catalog selects V1. The roles route by task shape:
 
-Agent handoffs include an objective, scope, observed/expected behavior when relevant, acceptance oracle, validation ceiling, and stop condition. The plugin doesn't assume another thread or model remembers prior conversation.
+- Luna: exact or bounded local execution with a decisive oracle;
+- Terra: repository intelligence and long-context retrieval;
+- Sol: architecture, ambiguous debugging, semantic review, and hard-tail work.
 
-The managed `[agents]` setting allows eight concurrently open spawned-agent
-threads beyond the primary. The normal active set stays at the smallest size
-that keeps independent work moving: 2-4 agents ordinarily, expanding toward
-5-8 for genuinely independent read-heavy or mechanically sharded work. Shared
-writes, sequential dependencies, validation or I/O bottlenecks, and expensive
-Sol lanes favor serialized or smaller active sets. Completed agents should be
-collected and closed so their capacity returns to the eight-slot ceiling.
+Medium is the ordinary baseline. Low fits one exact operation; high and xhigh
+are explicit escalations. Eight spawned threads is a capacity ceiling, not a
+target. Zero children is valid, children remain one level deep, and shared
+writes stay serialized.
 
-Forge installs a lean 283-word model-instruction layer at
-`$CODEX_HOME/forge/model-instructions.md` and points the managed
-`model_instructions_file` key at that exact path. Sentence order follows
-GPT-5.6 Role → Goal → Success → Constraints → Tools → Output → Stop: user
-requirements and their stated order occupy the Goal slot before execution
-guidance. The layer supplies the evidence, scope,
-orchestration, validation, and silent-work contract used by Forge. Codex
-carries the root session's effective base instructions into legacy V1
-children, so every registered Forge role receives the same base contract;
-role TOML files add their bounded developer instructions, model, and effort.
+Agent review is optional. Forge has no persisted worker → reviewer → repair
+state machine. Native `interrupt_agent`, `close_agent`, `send_input`, and
+`wait_agent` are never matched by Forge hooks.
 
-## Context continuity
+### Hooks
 
-Forge selects Codex's standard summary-backed compaction with a self-contained execution checkpoint. The managed configuration leaves token-budget context resets unset; Codex CLI 0.151.0 preserves the summary-producing path, while continuity remains grounded in the compact handoff. Codex 0.150.1 budgets retained images during remote compaction, and 0.151.0 accounts nested-subagent usage against root goal budgets; neither changes Forge's deterministic compaction choice.
+Hook paths use `scripts/hooks/<hook-type>/<behavior>.mjs`. Six focused handlers
+remain:
 
-See [context compaction findings](docs/context-compaction-2026-08-24.md) for the recorded incident, upstream mechanism, adopted controls, avoided alternatives, and verification limits.
+- `SessionStart/restore-continuity`
+- `PreToolUse/enforce-agent-spawn-boundaries` (two spawn aliases)
+- `UserPromptSubmit/preserve-raw`
+- `SubagentStart/provide-boundary-context`
+- `SubagentStop/record-handoff`
+- `SessionEnd/clear-continuity`
 
-## CodeGraph
+There is no Forge Stop hook. Codex 0.151.0 turns a blocking Stop result into a
+continuation prompt, which makes it unsuitable for mandatory review policy.
+Shared observational state lives in `scripts/lib/continuity-state.mjs` and
+cannot authorize new agent work.
 
-Forge installs `@colbymchenry/codegraph` when optional tools are enabled. The launcher prefers an installed `codegraph`, then Bun/bunx, pnpm/pnpx, Yarn, and npx. It never initializes a repository: creating `.codegraph/` remains an explicit user decision.
+### Permissions
 
-When an index exists, use `codegraph explore` before flat search for structural questions. The plugin also exposes `codegraph serve --mcp` through `.mcp.json`.
+Forge configures `approval_policy = "on-request"` and
+`sandbox_mode = "workspace-write"`. `forge.rules` supplies narrow command
+decisions. Forge does not duplicate Codex's shell parser, permission profiles,
+Guardian freshness, or remote sandbox path logic in hooks.
 
-## Git marketplace
+### Context continuity
 
-The repo marketplace is `.agents/plugins/marketplace.json`, with the plugin at `plugins/codex-forge`.
+Forge uses summary-backed compaction. The checked-in compact prompt is the
+local/custom-provider override and handoff specification; hosted sessions use
+Codex remote compaction. Bounded child handoffs and explicit `!RAW` text are
+stored for resume/compact continuity, but the store has no scheduler state.
+Token-budget compaction stays unset on 0.151.0. See [compaction](docs/operations/compaction.md).
 
-```sh
-codex plugin marketplace add OWNER/REPOSITORY --ref REF
-codex plugin add codex-forge@codex-forge
-```
+### CodeGraph
 
-Close every Codex CLI/app session and the app server before running plugin
-marketplace add/remove/upgrade commands or restamping a version. After the
-plugin is cached, start a fresh thread and use `forge-setup`; the Bun installer
-is included in the plugin.
+When a repository already contains `.codegraph/`, Forge uses CodeGraph first
+for structural discovery and verifies consequential findings in current source.
+The launcher prefers an installed binary, then supported package runners.
+Repository indexing remains an explicit user decision; Forge synchronizes an
+existing index before graph-dependent work when source changes may have made it
+stale.
 
-## Validate changes
+The exact Codex 0.151.0 source used for this audit is copied to
+`vendor/codex-cli-0.151.0` and indexed with CodeGraph.
+
+## Validate
 
 ```sh
 bun run validate:schemas
 bun run validate:skills
-bun test
+bun run test
 ```
 
-Schema validation checks the distributed hook manifest, plugin manifest, and Codex skill metadata. Skill validation checks Agent Skills frontmatter, progressive-disclosure paths, package hygiene, and Codex discovery metadata. The test suite covers hook decisions, configuration merging, local-override preservation, installer lifecycle, and repository contracts. Live model or external integration behavior remains `UNVERIFIED` unless the opt-in isolated runtime harness observes it.
+`bun run test` intentionally scopes discovery to Forge's `tests/unit`; plain
+`bun test` would also traverse the vendored upstream checkout. The opt-in
+isolated runtime harness remains `bun run test:isolated`.
 
-Instruction-layer edits, catalog restamps, and evidence-doc updates follow
-[CONTRIBUTING.md](CONTRIBUTING.md).
+## Evidence
 
-## Design evidence
-
-See [design evidence](docs/design-evidence.md), [failure controls](docs/failure-controls.md), the dated [observational evidence synthesis](docs/observational-evidence-2026-08-22.md), the [model-instruction audit](docs/model-instruction-audit-2026-08-24.md), and the [context compaction findings](docs/context-compaction-2026-08-24.md). Prompt guidance is kept compact; deterministic hooks, configuration, schemas, and tests own enforceable behavior. One observed failure is not a license to add a wide prompt rule.
+Official OpenAI GPT-5.6 guidance favors lean prompts, one statement per rule,
+relevant tools only, and compact authorization boundaries. Forge combines that
+guidance with the pinned Codex source, local session evidence, immutable Reddit
+captures, harness-engineering references, and isolated arXiv reads. Start at
+the [documentation index](docs/README.md).
 
 ## License
 

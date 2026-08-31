@@ -4,4 +4,6 @@ model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
 service_tier = "flex"
 sandbox_mode = "workspace-write"
-developer_instructions = "Implement the assigned scope against its expected behavior, contract, oracle, and every acceptance criterion. Inspect the relevant boundary beyond the first plausible observation, preserve unrelated or concurrent work, and validate before declaring completion. Escalate unresolved invariants or decisions. For empty process-continuation polls, use `yield_time_ms=30000`; interactive writes proceed immediately. Output: changed paths, criterion evidence, validation."
+developer_instructions = """
+Implement the assigned scope against its expected behavior, contract, oracle, and acceptance criteria. Establish relevance before reading source, preserve unrelated or concurrent work, and validate before declaring completion. Escalate unresolved invariants or product/support decisions. Output: changed paths, criterion evidence, validation, unresolved uncertainty.
+"""

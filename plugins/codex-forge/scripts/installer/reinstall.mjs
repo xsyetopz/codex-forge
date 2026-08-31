@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { which } from "../lib/process.mjs";
 import { validateCheckout } from "./checkout.mjs";
@@ -8,7 +8,15 @@ import {
 	removeForgeCache,
 	validateCacheRoot,
 } from "./owners/cache.mjs";
-import { withInstallerLock } from "./owners/transaction.mjs";
+import {
+	reconcileGlobalAgentsState,
+	recoverGlobalAgentsTransactions,
+} from "./owners/global-agents.mjs";
+import {
+	assertRegularFile,
+	withInstallerLock,
+	writeAtomic,
+} from "./owners/transaction.mjs";
 import { requireCodexClosed, terminateCodexProcesses } from "./processes.mjs";
 import {
 	forgeMarketplaceInstalled,
@@ -37,16 +45,27 @@ export async function runReinstall(_options = {}, deps = {}) {
 		const marketplaceInstalled = forgeMarketplaceInstalled(codex, home);
 		requireCodexClosed();
 		mkdirSync(home, { recursive: true });
+		const statePath = join(home, "forge", "install-state.json");
+		assertRegularFile(statePath, "installation state", home);
+		if (existsSync(statePath)) {
+			const state = JSON.parse(readFileSync(statePath, "utf8"));
+			recoverGlobalAgentsTransactions(home, state);
+			if (reconcileGlobalAgentsState(home, state.global_agents)) {
+				writeAtomic(statePath, `${JSON.stringify(state, null, 2)}\n`);
+			}
+		}
 		const uninstall = deps.uninstallUnlocked ?? uninstallUnlocked;
 		const install = deps.installUnlocked ?? installUnlocked;
-		const uninstallStatus = await uninstall({
+		let uninstallStatus;
+		uninstallStatus = await uninstall({
 			purge: true,
 			skipPluginRemoval: true,
 		});
-		if (uninstallStatus !== 0)
+		if (uninstallStatus !== 0) {
 			throw new Error(
 				`reinstall uninstall phase failed with status ${uninstallStatus}`,
 			);
+		}
 		requireCodexClosed();
 		if (pluginInstalled) {
 			requireCodexClosed();

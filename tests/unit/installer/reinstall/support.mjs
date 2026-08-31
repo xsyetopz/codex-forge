@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
 	chmodSync,
 	existsSync,
+	linkSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
@@ -11,11 +12,16 @@ import {
 	readlinkSync,
 	rmSync,
 	symlinkSync,
+	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, relative, resolve } from "node:path";
-import { parseGlobalAgents } from "../../../../plugins/codex-forge/scripts/installer/owners/global-agents.mjs";
+import {
+	installGlobalAgents,
+	parseGlobalAgents,
+	uninstallGlobalAgents,
+} from "../../../../plugins/codex-forge/scripts/installer/owners/global-agents.mjs";
 import {
 	acquireInstallerLock,
 	withInstallerLock,
@@ -178,7 +184,9 @@ export {
 	fixture,
 	install,
 	installerLockPaths,
+	installGlobalAgents,
 	join,
+	linkSync,
 	mkdirSync,
 	parseGlobalAgents,
 	ROOT,
@@ -192,6 +200,8 @@ export {
 	snapshotTree,
 	symlinkSync,
 	temporary,
+	uninstallGlobalAgents,
+	unlinkSync,
 	withInstallerLock,
 	writeFileSync,
 };

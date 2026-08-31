@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { PLUGIN, ROOT, read } from "./support.mjs";
@@ -17,9 +17,9 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		"PreToolUse",
 		"SessionEnd",
 		"SessionStart",
-		"Stop",
 		"SubagentStart",
 		"SubagentStop",
+		"UserPromptSubmit",
 	]);
 	const commands = Object.values(hooks.hooks)
 		.flatMap((groups) =>
@@ -37,36 +37,53 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		),
 	).toBe(true);
 	expect(commands).toEqual([
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/session-start.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/session-start/provide-code-discovery-context.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/pre-tool-use.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-sandbox-cache.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-safe-shell-commands.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/advise-efficient-tool-use.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/session-start/restore-continuity.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/provide-long-agent-wait.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-worker-boundary-context.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-start.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/subagent-stop.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/stop.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/orchestration/session-end.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/user-prompt-submit/preserve-raw.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-boundary-context.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-stop/record-handoff.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/session-end/clear-continuity.mjs"',
 	]);
-	expect(commands.every((command) => /\/[a-z0-9-]+\.mjs"$/.test(command))).toBe(
-		true,
-	);
+	for (const [eventName, groups] of Object.entries(hooks.hooks)) {
+		const eventDirectory = eventName
+			.replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+			.toLowerCase();
+		for (const group of groups)
+			for (const hook of group.hooks) {
+				const match = hook.command.match(
+					/^bun "\$PLUGIN_ROOT\/scripts\/hooks\/([a-z0-9-]+)\/([a-z0-9-]+)\.mjs"$/,
+				);
+				expect(match).toBeTruthy();
+				expect(match[1]).toBe(eventDirectory);
+				expect(match[2]).not.toBe(eventDirectory);
+			}
+	}
+	const hookFiles = readdirSync(join(PLUGIN, "scripts", "hooks"), {
+		recursive: true,
+		withFileTypes: true,
+	})
+		.filter((entry) => entry.isFile())
+		.map((entry) => join(entry.parentPath, entry.name));
+	expect(hookFiles).toHaveLength(6);
+	for (const path of hookFiles)
+		expect(path).toMatch(
+			/\/scripts\/hooks\/[a-z0-9-]+\/[a-z0-9-]+\.mjs$/,
+		);
 	expect(hooks.description).toBeTruthy();
 	expect(hooks.hooks.SessionStart).toHaveLength(1);
 	expect(hooks.hooks.SessionStart[0].matcher).toBeUndefined();
-	expect(hooks.hooks.SessionStart[0].hooks).toHaveLength(2);
+	expect(hooks.hooks.SessionStart[0].hooks).toHaveLength(1);
 	expect(hooks.hooks.SessionEnd[0].hooks[0].timeout).toBe(3);
+	expect(hooks.hooks.UserPromptSubmit[0].hooks[0].additionalContextLimit).toBe(
+		128,
+	);
 	expect(
-		hooks.hooks.SessionStart[0].hooks[1].additionalContextLimit,
+		hooks.hooks.SessionStart[0].hooks[0].additionalContextLimit,
 	).toBeGreaterThanOrEqual(256);
 	expect(hooks.hooks.PreToolUse.map((group) => group.matcher)).toEqual([
-		"*",
-		"^Bash$",
 		"^Agent$",
-		"^multi_agent_v1wait_agent$",
+		"^multi_agent_v1(?:__|[._:-])?spawn_agent$",
 	]);
 	expect(existsSync(join(PLUGIN, "scripts", "hook.mjs"))).toBe(false);
 	expect(

@@ -13,17 +13,68 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TOML } from "bun";
 import {
+	benchmarkOutputRoot,
+	DEFAULT_BENCHMARK_OUTPUT,
+} from "../../plugins/codex-forge/scripts/benchmark/launch-matrix.mjs";
+import {
 	buildPortableForgePackage,
 	renderConfig,
 	renderMatrix,
 } from "../../plugins/codex-forge/scripts/benchmark/package.mjs";
 
 const temporary = [];
-afterEach(() =>
-	temporary
-		.splice(0)
-		.forEach((path) => rmSync(path, { recursive: true, force: true })),
-);
+afterEach(() => {
+	temporary.splice(0).forEach((path) => {
+		rmSync(path, { recursive: true, force: true });
+	});
+});
+
+test("benchmark matrix defaults outside the workspace and honors overrides", () => {
+	const workspace = join(import.meta.dir, "../..");
+	const defaultOutput = benchmarkOutputRoot();
+	const override = join(workspace, ".benchmark-cache", "isolated-output");
+	expect(defaultOutput).toBe(DEFAULT_BENCHMARK_OUTPUT);
+	expect(defaultOutput.startsWith(`${workspace}/`)).toBe(false);
+	expect(benchmarkOutputRoot(override)).toBe(override);
+});
+
+test("benchmark default fails closed when the injected temp root is in the workspace", () => {
+	const workspace = join(import.meta.dir, "../..");
+	expect(() =>
+		benchmarkOutputRoot(undefined, {
+			workspaceRoot: workspace,
+			tempRoot: join(workspace, "tmp"),
+		}),
+	).toThrow("provide an explicit output override");
+	expect(
+		benchmarkOutputRoot(join(workspace, "explicit"), {
+			workspaceRoot: workspace,
+			tempRoot: join(workspace, "tmp"),
+		}),
+	).toBe(join(workspace, "explicit"));
+});
+
+test("benchmark containment uses the checkout root rather than process.cwd", () => {
+	const originalCwd = process.cwd;
+	process.cwd = () => join(import.meta.dir, "../..", "plugins/codex-forge");
+	try {
+		expect(() =>
+			benchmarkOutputRoot(undefined, {
+				tempRoot: join(import.meta.dir, "../..", "tmp"),
+			}),
+		).toThrow("provide an explicit output override");
+	} finally {
+		process.cwd = originalCwd;
+	}
+	const checkout = join(import.meta.dir, "../..");
+	const sibling = `${checkout}-sibling`;
+	expect(
+		benchmarkOutputRoot(undefined, {
+			workspaceRoot: checkout,
+			tempRoot: sibling,
+		}),
+	).toBe(join(sibling, "codex-forge-benchmark-cache", "terminal-bench-4.0"));
+});
 
 test("portable Forge package carries absolute-path assets into CODEX_HOME", () => {
 	const output = mkdtempSync(join(tmpdir(), "forge-portable-"));
@@ -51,8 +102,7 @@ test("portable Forge package carries absolute-path assets into CODEX_HOME", () =
 		"plugins/codex-forge/.codex-plugin/plugin.json",
 		"plugins/codex-forge/assets/config-template.toml",
 		"plugins/codex-forge/hooks/hooks.json",
-		"plugins/codex-forge/scripts/hooks/orchestration/pre-tool-use.mjs",
-		"plugins/codex-forge/skills/forge-review/SKILL.md",
+		"plugins/codex-forge/scripts/hooks/user-prompt-submit/preserve-raw.mjs",
 	])
 		expect(existsSync(join(output, path))).toBe(true);
 	for (const path of [

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	commandCandidates,
 	resolveCommand,
+	userOwnedSubcommand,
 } from "../../plugins/codex-forge/scripts/codegraph.mjs";
 
 const resolver = (available) => async (name) =>
@@ -33,4 +34,10 @@ describe("CodeGraph launcher", () => {
 				)
 			).map((item) => item[0]),
 		).toEqual(["bun", "pnpm", "yarn", "npx"]));
+	test("keeps repository initialization user-owned", () => {
+		expect(userOwnedSubcommand(["init"])).toBe(true);
+		expect(userOwnedSubcommand(["INIT"])).toBe(true);
+		expect(userOwnedSubcommand(["sync"])).toBe(false);
+		expect(userOwnedSubcommand(["explore", "parser"])).toBe(false);
+	});
 });

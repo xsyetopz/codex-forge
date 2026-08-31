@@ -14,7 +14,7 @@ describe("skills", () => {
 		.map((entry) => entry.name)
 		.sort();
 	test("surface remains focused", () =>
-		expect(skillDirectories).toHaveLength(7));
+		expect(skillDirectories).toEqual(["forge-setup"]));
 	for (const name of skillDirectories)
 		test(`${name} is concise and indexable`, () => {
 			const directory = join(PLUGIN, "skills", name);
@@ -38,12 +38,4 @@ describe("skills", () => {
 			))
 				expect(existsSync(join(directory, link))).toBe(true);
 		});
-	test("forge-skill-creator ships deterministic package tools", () => {
-		for (const name of ["check-skill.mjs", "init-skill.mjs"])
-			expect(
-				existsSync(
-					join(PLUGIN, "skills", "forge-skill-creator", "scripts", name),
-				),
-			).toBe(true);
-	});
 });

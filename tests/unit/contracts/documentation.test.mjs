@@ -1,11 +1,13 @@
 import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
 	chmodSync,
 	cpSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
@@ -15,6 +17,59 @@ import { join } from "node:path";
 import { forgeCatalogSatisfiesContract } from "../../../plugins/codex-forge/scripts/installer/catalog.mjs";
 import { PLUGIN, ROOT, read } from "./support.mjs";
 
+test("Reddit evidence captures remain byte-identical to the audited corpus", () => {
+	const manifest = read(join(ROOT, "docs", "evidence", "reddit.sha256"))
+		.trim()
+		.split("\n")
+		.map((line) => {
+			const match = line.match(/^([a-f0-9]{64}) {2}(docs\/reddit\/.+\.md)$/);
+			expect(match).toBeTruthy();
+			return [match[2], match[1]];
+		});
+	const expected = new Map(manifest);
+	const files = readdirSync(join(ROOT, "docs", "reddit"))
+		.filter((name) => name.endsWith(".md"))
+		.map((name) => `docs/reddit/${name}`)
+		.sort();
+	expect(files).toEqual([...expected.keys()].sort());
+	for (const path of files)
+		expect(
+			createHash("sha256")
+				.update(read(join(ROOT, path)))
+				.digest("hex"),
+		).toBe(expected.get(path));
+});
+
+test("model instruction replacement remains lean, positive, and pinned", () => {
+	const modelInstructions = read(
+		join(PLUGIN, "assets", "model-instructions.md"),
+	);
+	const developerInstructions = read(
+		join(PLUGIN, "assets", "developer-instructions.txt"),
+	);
+	const words = modelInstructions.trim().split(/\s+/).length;
+	const digest = createHash("sha256").update(modelInstructions).digest("hex");
+	expect(words).toBe(290);
+	expect(digest).toBe(
+		"3ed2a357d3c1da3452066959bf8670a42b24811525884937c6e0cd2cdd74fd4c",
+	);
+	for (const text of [modelInstructions, developerInstructions])
+		for (const negative of [
+			/\bdo not\b/i,
+			/\bnever\b/i,
+			/\bnot\b/i,
+			/\bwithout\b/i,
+			/\bavoid\b/i,
+		])
+			expect(text).not.toMatch(negative);
+	expect(modelInstructions).toContain("!RAW");
+	expect(modelInstructions.indexOf("Honor exact requirements")).toBeLessThan(
+		modelInstructions.indexOf(
+			"produce precise, safe outcomes through harness tools",
+		),
+	);
+});
+
 test("README installation and validation commands match distributed entrypoints", () => {
 	const readme = read(join(ROOT, "README.md"));
 	for (const command of [
@@ -23,22 +78,26 @@ test("README installation and validation commands match distributed entrypoints"
 		"bun install.mjs revert",
 		"bun install.mjs uninstall",
 		"bun run validate:schemas",
-		"bun test",
+		"bun run test",
 	])
 		expect(readme).toContain(command);
 	for (const path of [
 		"AGENTS.md",
 		"CONTRIBUTING.md",
 		"Justfile",
-		"docs/reinstall-recovery.md",
-		"docs/design-evidence.md",
-		"docs/failure-controls.md",
-		"docs/observational-evidence-2026-08-22.md",
-		"docs/model-instruction-audit-2026-08-24.md",
-		"docs/context-compaction-2026-08-24.md",
+		"docs/README.md",
+		"docs/architecture.md",
+		"docs/operations/reinstall-recovery.md",
+		"docs/operations/compaction.md",
+		"docs/reference/failure-controls.md",
+		"docs/evidence/codex-cli-0.151.0.md",
+		"docs/evidence/community-observations.md",
+		"docs/evidence/model-instructions.md",
+		"docs/evidence/research-synthesis.md",
+		"docs/evidence/session-observations.md",
 	])
 		expect(existsSync(join(ROOT, path))).toBe(true);
-	const recovery = read(join(ROOT, "docs/reinstall-recovery.md"));
+	const recovery = read(join(ROOT, "docs/operations/reinstall-recovery.md"));
 	const packagedRecovery = read(
 		join(
 			PLUGIN,
@@ -276,13 +335,14 @@ test("README installation and validation commands match distributed entrypoints"
 		rmSync(resolverHome, { recursive: true, force: true });
 	}
 	expect(read(join(ROOT, "Justfile"))).toContain("bun install.mjs reinstall");
-	expect(readme).toContain("docs/model-instruction-audit-2026-08-24.md");
+	expect(readme).toContain("docs/evidence/model-instructions.md");
 	expect(readme).toContain("AGENTS.md");
 	expect(readme).toContain("CONTRIBUTING.md");
-	expect(readme).toContain("283-word");
+	expect(readme).toContain("290-word");
+	expect(readme).not.toContain("283-word");
 	expect(readme).not.toContain("359-word");
 	expect(read(join(ROOT, "AGENTS.md"))).toContain(
-		"docs/model-instruction-audit-2026-08-24.md",
+		"docs/evidence/model-instructions.md",
 	);
 	expect(read(join(ROOT, "CONTRIBUTING.md"))).toContain(
 		"tests/unit/contracts/documentation.test.mjs",

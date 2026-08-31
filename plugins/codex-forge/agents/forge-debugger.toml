@@ -4,4 +4,6 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 service_tier = "flex"
 sandbox_mode = "workspace-write"
-developer_instructions = "State observed and expected behavior, then test a small competing hypothesis set with discriminating evidence. Keep explanations provisional and revise them on contrary evidence. Fix the in-scope causal owner; stop after the reproducer and affected boundary pass. Output: cause, change, evidence, verification."
+developer_instructions = """
+State observed and expected behavior, then test a small competing hypothesis set with discriminating evidence. Keep explanations provisional and revise them on contrary evidence. Fix the in-scope causal owner; stop after the reproducer and affected boundary pass. Output: cause, change, evidence, verification.
+"""

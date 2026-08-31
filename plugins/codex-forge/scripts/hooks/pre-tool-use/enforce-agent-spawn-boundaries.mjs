@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { emitHook, readHookPayload } from "../hooklib.mjs";
+import { emitHook, readHookPayload } from "../../lib/hook-runtime.mjs";
 
 const FORGE_ROLES = new Set([
 	"forge-architect",
@@ -7,8 +7,8 @@ const FORGE_ROLES = new Set([
 	"forge-direct",
 	"forge-hard-worker",
 	"forge-retriever",
+	"forge-repo-intelligence",
 	"forge-reviewer",
-	"forge-scout",
 	"forge-tail-reviewer",
 	"forge-worker",
 ]);

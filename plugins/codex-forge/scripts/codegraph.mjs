@@ -20,7 +20,17 @@ export async function resolveCommand(resolve = which) {
 	return (await commandCandidates(resolve))[0] ?? null;
 }
 
+export function userOwnedSubcommand(args = process.argv.slice(2)) {
+	return String(args[0] ?? "").toLowerCase() === "init";
+}
+
 async function main() {
+	if (userOwnedSubcommand()) {
+		process.stderr.write(
+			"CodeGraph initialization is user-owned; run the CodeGraph CLI directly when you choose to index this repository.\n",
+		);
+		return 2;
+	}
 	const command = await resolveCommand();
 	if (!command) {
 		process.stderr.write(

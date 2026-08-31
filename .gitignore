@@ -1,5 +1,6 @@
 __pycache__/
 benchmark-artifacts/
+.benchmark-cache/
 .ruff_cache/
 .DS_Store
 HANDOFF.md

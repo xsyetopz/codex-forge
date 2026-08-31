@@ -1,3 +1,0 @@
-# Opt-in only: persistent extracted memory can add stale context and background inference.
-[features]
-memories = true
