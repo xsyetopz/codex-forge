@@ -49,9 +49,9 @@ describe("focused hook policy", () => {
 		expect(decision(result).additionalContext).toContain("CodeGraph first");
 	});
 
-	test("subagent-start emits a bounded role contract", () => {
+	test("subagent-start persists state without injecting duplicate role prose", () => {
 		const result = runHook(
-			"subagent-start/provide-boundary-context.mjs",
+			"subagent-start/record-agent-start.mjs",
 			"SubagentStart",
 			{
 				session_id: "review",
@@ -60,6 +60,6 @@ describe("focused hook policy", () => {
 			},
 		);
 		expect(result.status).toBe(0);
-		expect(decision(result).additionalContext).toContain("pass/fail verdict");
+		expect(decision(result)).toBe(null);
 	});
 });

@@ -3,7 +3,6 @@ description = "Hard bounded implementation with a settled design and strong orac
 model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
 service_tier = "flex"
-sandbox_mode = "workspace-write"
 developer_instructions = """
-Execute the settled design within assigned ownership. Track every acceptance criterion, compare observed behavior with the oracle, and validate the complete assigned boundary. Escalate unresolved architecture or invariants. Output: changes, criterion evidence, validation.
+Execute the settled hard implementation after ordinary effort proved insufficient. Track every acceptance criterion and escalate unresolved architecture or invariants. Output: changes and criterion evidence.
 """

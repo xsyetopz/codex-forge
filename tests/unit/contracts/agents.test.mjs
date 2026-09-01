@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { TOML } from "bun";
 
@@ -25,22 +25,39 @@ test("tool and policy sources retain bounded ownership", () => {
 });
 
 test("registered agent role contracts remain bounded", () => {
-	const descriptions = JSON.parse(
-		read(join(PLUGIN, "assets", "agent-descriptions.json")),
+	const roles = readdirSync(join(PLUGIN, "agents"))
+		.filter((name) => /^forge-.*\.toml$/.test(name))
+		.sort();
+	expect(roles).toEqual([
+		"forge-architect.toml",
+		"forge-debugger.toml",
+		"forge-direct.toml",
+		"forge-hard-worker.toml",
+		"forge-repo-intelligence.toml",
+		"forge-retriever.toml",
+		"forge-reviewer.toml",
+		"forge-tail-reviewer.toml",
+		"forge-worker.toml",
+	]);
+	expect(existsSync(join(PLUGIN, "assets", "agent-descriptions.json"))).toBe(
+		false,
 	);
-	const roles = readdirSync(join(PLUGIN, "agents")).filter((name) =>
-		/^forge-.*\.toml$/.test(name),
-	);
-	expect(roles.length).toBeGreaterThanOrEqual(9);
 	for (const name of roles) {
 		const raw = read(join(PLUGIN, "agents", name));
 		const role = TOML.parse(raw);
 		expect(role.name).toBe(name.slice(0, -5));
-		expect(role.description).toBe(descriptions[role.name]);
+		expect(role.description).toBeTruthy();
 		expect(role.developer_instructions).toBeTruthy();
 		expect(raw).toContain('developer_instructions = """\n');
 		expect(role.service_tier).toBe("flex");
 		expect(role.features?.multi_agent_v2).toBeUndefined();
+		for (const unsupported of [
+			"sandbox_mode",
+			"model_instructions_file",
+			"compact_prompt",
+			"experimental_compact_prompt_file",
+		])
+			expect(role[unsupported]).toBeUndefined();
 	}
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-architect.toml"))).model,
@@ -77,10 +94,31 @@ test("registered agent role contracts remain bounded", () => {
 		read(join(PLUGIN, "agents", "forge-repo-intelligence.toml")),
 	);
 	expect(repoIntelligence.model).toBe("gpt-5.6-terra");
-	expect(repoIntelligence.sandbox_mode).toBe("workspace-write");
 	expect(repoIntelligence.developer_instructions).toContain("codegraph sync");
 	expect(repoIntelligence.developer_instructions).toContain(
 		"CodeGraph CLI first",
 	);
 	expect(roles).not.toContain("forge-scout.toml");
+});
+
+test("prompt layers keep one runtime owner per generic behavior", () => {
+	const developer = read(join(PLUGIN, "assets", "developer-instructions.txt"));
+	const globalAgents = read(join(PLUGIN, "assets", "AGENTS.md.patch"));
+	for (const duplicate of [
+		"!RAW",
+		"Establish relevance before reading",
+		"Compatibility belongs",
+		"Validate for information value",
+	])
+		expect(developer).not.toContain(duplicate);
+	for (const duplicate of [
+		"requested scope",
+		"external or hosted writes",
+		"Report changed paths",
+	])
+		expect(globalAgents).not.toContain(duplicate);
+	for (const name of ["forge-direct.toml", "forge-worker.toml"])
+		expect(read(join(PLUGIN, "agents", name))).not.toContain(
+			"Establish relevance before reading",
+		);
 });

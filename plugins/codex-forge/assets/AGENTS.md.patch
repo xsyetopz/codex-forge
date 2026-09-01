@@ -1,5 +1,4 @@
 <!-- CODEX_FORGE_START -->
 Codex Forge is active. Use an explicit `$forge-*` selector when a Forge workflow matches the task, and use the repository's nearest `AGENTS.md` for repository-specific governance.
-Keep repository work within the requested scope, preserve unrelated user content, and obtain explicit permission before external or hosted writes. Report changed paths, validation, and unresolved evidence when a task is complete.
-Forge developer instructions own model routing, bounded delegation, CodeGraph-first repository intelligence, and handoff policy; hooks enforce only hard boundaries and durable lifecycle state.
+Forge base model instructions own universal execution behavior. Root developer instructions own delegation, routing, and review; role TOMLs own child differentiation; hooks own deterministic spawn boundaries and durable lifecycle state.
 <!-- CODEX_FORGE_END -->

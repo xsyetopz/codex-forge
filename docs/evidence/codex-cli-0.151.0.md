@@ -108,6 +108,29 @@ down the selected child and its live descendants, waits for termination, removes
 threads from the manager, and releases capacity. Forge delegates these actions
 to Codex instead of reconstructing them in hooks.
 
+## V1 child instruction and role projection
+
+Source owners:
+
+- `codex-rs/core/src/tools/handlers/multi_agents_common.rs`
+- `codex-rs/core/src/agent/role.rs`
+- `codex-rs/core/src/agent/role_tests.rs`
+
+A V1 spawn clones the parent turn's effective configuration, installs the
+parent session's resolved base-instruction text, and refreshes live runtime
+state. The selected role is then projected through an explicit whitelist.
+Role-local `developer_instructions` replace the cloned parent value. Effective
+role fields include model and reasoning settings, verbosity, personality,
+service tier, selected feature reductions, and selected skill reductions.
+
+`model_instructions_file`, `compact_prompt`,
+`experimental_compact_prompt_file`, and `sandbox_mode` can parse in a role file
+but are absent from the projected override. The child therefore inherits the
+parent base instructions, compact prompt, sandbox, and permissions. Provider,
+approval, app, MCP, notification, and authority-expanding settings are likewise
+excluded or restored from the live parent turn. Forge omits all ineffective
+role fields rather than documenting them as child controls.
+
 ## Multi-agent version and capacity
 
 Source owners:
@@ -152,6 +175,11 @@ Local/custom compaction consumes the configured prompt, while hosted behavior
 may use remote compaction. Forge does not enable token-budget compaction because
 0.151.0's nested-subagent accounting is accounting, not a durable application
 checkpoint.
+
+V1 children retain the parent-effective `compact_prompt` in their cloned
+configuration. Automatic and manual local compaction consume that inherited
+value; role-local compact-prompt fields are dropped. Remote compaction and
+token-budget context resets do not consume the local prompt.
 
 Goal accounting is session-scoped through shared `AgentControl`. Nested agent
 usage can now exhaust the root goal budget and causes

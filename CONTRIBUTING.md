@@ -25,8 +25,8 @@ Canonical files:
 
 - `plugins/codex-forge/assets/model-instructions.md` — replace identity
 - `plugins/codex-forge/assets/developer-instructions.txt` — Forge protocol
-- role TOML under `plugins/codex-forge/agents/` — model, effort, role-local
-  developer instructions only
+- role TOML under `plugins/codex-forge/agents/` — discovery metadata, effective
+  model settings, and role-local developer instructions only
 
 When changing `model-instructions.md`:
 
@@ -46,9 +46,16 @@ When changing `model-instructions.md`:
    in
    [model instruction evidence](docs/evidence/model-instructions.md).
 
-Role files must not gain `model_instructions_file`. Codex copies the parent
-session’s base instructions into children and drops that key from role
-overrides. See the model-instruction audit.
+Role `developer_instructions` replace the root developer instruction layer for
+that child, so keep only the role's differentiating method and output shape.
+Codex CLI 0.151.0 applies role-local developer instructions, model, reasoning,
+verbosity, personality, service tier, selected feature reductions, and selected
+skill reductions. It copies the parent session's base instructions, compact
+prompt, sandbox, and permissions into the child and excludes role-local
+`model_instructions_file`, `compact_prompt`,
+`experimental_compact_prompt_file`, and `sandbox_mode` from the applied
+override. Keep those ineffective keys out of role files. See the
+model-instruction and 0.151.0 source audits.
 
 After users install, `$CODEX_HOME/forge/model-instructions.md` updates only on
 `bun install.mjs install` (or `revert` / `--replace`). Editing the plugin

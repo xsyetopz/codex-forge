@@ -53,9 +53,8 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-boundary-context.mjs\"",
-						"timeout": 10,
-						"additionalContextLimit": 100
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/subagent-start/record-agent-start.mjs\"",
+						"timeout": 10
 					}
 				]
 			}

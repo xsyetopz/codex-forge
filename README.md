@@ -101,7 +101,7 @@ remain:
 - `SessionStart/restore-continuity`
 - `PreToolUse/enforce-agent-spawn-boundaries` (two spawn aliases)
 - `UserPromptSubmit/preserve-raw`
-- `SubagentStart/provide-boundary-context`
+- `SubagentStart/record-agent-start`
 - `SubagentStop/record-handoff`
 - `SessionEnd/clear-continuity`
 
@@ -109,6 +109,11 @@ There is no Forge Stop hook. Codex 0.151.0 turns a blocking Stop result into a
 continuation prompt, which makes it unsuitable for mandatory review policy.
 Shared observational state lives in `scripts/lib/continuity-state.mjs` and
 cannot authorize new agent work.
+
+V1 children inherit the parent session's effective base instructions and local
+compact prompt. Their role TOML replaces the root developer instruction layer
+with role-specific behavior; Codex 0.151.0 drops role-local base-instruction,
+compact-prompt, and sandbox settings from the applied override.
 
 ### Permissions
 

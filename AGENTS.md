@@ -29,11 +29,12 @@ instruction-layer edits.
   GPT-5.6 Role → Goal → Success → Constraints → Tools → Output → Stop, without
   section labels. The user-requirement / stated-order sentence precedes
   “produce outcomes through the tools”.
-- `plugins/codex-forge/assets/developer-instructions.txt` is Forge
-  role routing, delegation, review, CodeGraph, and handoff policy. Same ban on
-  negative constructions. No
-  `model_instructions_file` on role TOML: children inherit the parent base;
-  role-local copies of that key are accepted then dropped.
+- `plugins/codex-forge/assets/developer-instructions.txt` owns root delegation,
+  role routing, and review policy. Same ban on negative constructions. Role
+  TOMLs own child differentiation and replace the root developer layer for the
+  child. On Codex CLI 0.151.0, children inherit the parent base instructions,
+  compact prompt, sandbox, and permissions; role-local copies of those settings
+  are parsed but excluded from the applied role override.
 - One observed failure is not a license to add a wide rule. The PCSX2
   check-before-use case inverted stated order; it did not justify a universal
   flags-from-docs policy.

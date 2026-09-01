@@ -29,7 +29,7 @@ describe("Forge observational handoffs", () => {
 		const runtime = mkdtempSync(join(tmpdir(), "forge-handoff-"));
 		const sessionId = "unordered-agents";
 		hook(
-			"subagent-start/provide-boundary-context.mjs",
+			"subagent-start/record-agent-start.mjs",
 			"SubagentStart",
 			{
 				session_id: sessionId,

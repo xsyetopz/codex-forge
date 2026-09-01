@@ -8,8 +8,8 @@ decision for a custom harness, not an accidental compatibility path.
 | Layer | Owner |
 | --- | --- |
 | Base identity | `plugins/codex-forge/assets/model-instructions.md` |
-| Forge routing and delegation | `plugins/codex-forge/assets/developer-instructions.txt` |
-| Role-local behavior | `plugins/codex-forge/agents/*.toml` |
+| Root routing, delegation, and review | `plugins/codex-forge/assets/developer-instructions.txt` |
+| Child differentiation | `plugins/codex-forge/agents/*.toml` |
 | Effective model transport | `plugins/codex-forge/assets/model-catalog.json` |
 | Installed selection | managed `model_instructions_file`, `developer_instructions`, and `model_catalog_json` config |
 
@@ -74,9 +74,20 @@ and the exact runtime baseline.
 ## Child inheritance and role files
 
 Legacy V1 children inherit the parent session's effective base instructions.
-Role TOML owns model, reasoning effort, service tier, sandbox selection, and
-role-local developer instructions. A role-local `model_instructions_file` is
-outside that supported override surface and is intentionally absent.
+They also inherit the parent's effective compact prompt and live sandbox and
+permission state. Role-local `developer_instructions` replace the root
+developer layer for the child. Codex CLI 0.151.0 then applies a bounded role
+override containing developer instructions, model and reasoning settings,
+verbosity, personality, service tier, selected feature reductions, and selected
+skill reductions. It excludes `model_instructions_file`, `compact_prompt`,
+`experimental_compact_prompt_file`, and `sandbox_mode`, so Forge omits those
+misleading keys from role files.
+
+The current OpenAI [custom-agent documentation](https://developers.openai.com/codex/agent-configuration/subagents)
+describes custom agent files as session configuration layers and recommends
+narrow, opinionated agents. Forge's support contract remains the audited
+0.151.0 V1 implementation, whose applied role projection is narrower than the
+current general documentation.
 
 Forge keeps `features.multi_agent_v2` unset and restamps its GPT-5.6 catalog
 entries to V1. V2 has different fork and usage-hint semantics and is not a
@@ -90,7 +101,7 @@ compatibility target for the current role files.
 | Ignoring stated order | Goal sentence in base identity |
 | Routine narration and social padding | Output sentence in base identity |
 | Social-script substitution during execution-failure recovery | Operational task-state sentence in base identity |
-| Repeated approval requests for safe local work | Single autonomy boundary in developer instructions |
+| Repeated approval requests for safe local work | Authority and permission boundary in base identity |
 | Wrong model for ambiguous work | Role-routing paragraph and role TOML |
 | Mandatory review/repair loop | Removed from hooks; optional task topology only |
 | Stale state creating new work | Continuity schema has no lifecycle authority |

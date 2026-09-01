@@ -43,6 +43,13 @@ Forge leaves `features.token_budget` unset so Codex uses summary-producing compa
 
 On OpenAI-hosted and Azure-hosted models, Codex selects remote compaction. The local `compact_prompt` / `experimental_compact_prompt_file` override is consumed by the local/custom-provider branch, not by the hosted remote-compaction branch. Forge therefore treats its custom compact prompt as a local-provider fallback and documented handoff specification, not as the continuity guarantee for normal hosted Codex sessions. Hosted continuity instead relies on Codex's remote compaction plus Forge's independently persisted orchestration handoffs and deterministic lifecycle recovery.
 
+Codex CLI 0.151.0 V1 children clone the parent-effective compact prompt. Their
+automatic and manual local compaction uses that inherited value, while
+role-local `compact_prompt` and `experimental_compact_prompt_file` settings are
+excluded from the applied role override. Per-role compaction prompts are
+therefore unavailable without changing Codex source. Hosted remote compaction
+continues to bypass the local Forge prompt for both root and child sessions.
+
 ### A self-contained execution checkpoint
 
 `plugins/codex-forge/assets/compact-prompt.md` asks the compaction model to preserve the objective, request mode, exact user/compatibility decisions, constraints, worktree state, validation, CodeGraph/source evidence, bounded child handoffs, blockers, and a concrete next action.

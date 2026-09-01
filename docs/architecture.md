@@ -24,7 +24,7 @@ Forge hooks are adapters, not a workflow scheduler. The current surface is:
 | `SessionStart` | Restore bounded continuity and report CodeGraph availability |
 | `PreToolUse` | Validate only agent spawn boundaries |
 | `UserPromptSubmit` | Preserve explicit `!RAW` task text |
-| `SubagentStart` | Record the child and provide its bounded role contract |
+| `SubagentStart` | Record the child without adding prompt context |
 | `SubagentStop` | Record the final bounded handoff |
 | `SessionEnd` | Clear per-session continuity state |
 
@@ -33,6 +33,11 @@ SubagentStop hook as a continuation request, so a mandatory worker/reviewer
 state machine at that boundary can override a later user instruction to stop.
 Agent interruption, closure, waiting, and messaging remain native Codex tools
 and have no Forge PreToolUse matcher.
+
+Child behavior comes from the inherited base instructions plus the selected
+role TOML. The SubagentStart hook persists lifecycle state only; reviewer,
+repository-intelligence, handoff, and delegation prose remains at its prompt or
+enforcement owner instead of being repeated as hook context.
 
 ## Continuity boundary
 

@@ -41,7 +41,7 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/user-prompt-submit/preserve-raw.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/provide-boundary-context.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/record-agent-start.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-stop/record-handoff.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/session-end/clear-continuity.mjs"',
 	]);
@@ -67,9 +67,7 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		.map((entry) => join(entry.parentPath, entry.name));
 	expect(hookFiles).toHaveLength(6);
 	for (const path of hookFiles)
-		expect(path).toMatch(
-			/\/scripts\/hooks\/[a-z0-9-]+\/[a-z0-9-]+\.mjs$/,
-		);
+		expect(path).toMatch(/\/scripts\/hooks\/[a-z0-9-]+\/[a-z0-9-]+\.mjs$/);
 	expect(hooks.description).toBeTruthy();
 	expect(hooks.hooks.SessionStart).toHaveLength(1);
 	expect(hooks.hooks.SessionStart[0].matcher).toBeUndefined();
@@ -78,6 +76,9 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	expect(hooks.hooks.UserPromptSubmit[0].hooks[0].additionalContextLimit).toBe(
 		128,
 	);
+	expect(
+		hooks.hooks.SubagentStart[0].hooks[0].additionalContextLimit,
+	).toBeUndefined();
 	expect(
 		hooks.hooks.SessionStart[0].hooks[0].additionalContextLimit,
 	).toBeGreaterThanOrEqual(256);
