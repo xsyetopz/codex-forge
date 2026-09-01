@@ -1,0 +1,6 @@
+interface:
+  display_name: "Forge Skill Creator"
+  short_description: "Create and audit consistent agent skills"
+  default_prompt: "Use $forge-skill-creator to create or audit a spec-conformant agent skill."
+policy:
+  allow_implicit_invocation: false
