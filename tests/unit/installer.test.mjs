@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { parseArguments } from "../../plugins/codex-forge/scripts/installer/cli.mjs";
 
 const ROOT = resolve(import.meta.dir, "../..");
 
@@ -15,5 +16,13 @@ describe("installer public entrypoint", () => {
 		);
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("Usage: bun install.mjs");
+	});
+
+	test("accepts explicit non-interactive reinstall confirmation", () => {
+		expect(parseArguments(["reinstall", "--yes"])).toMatchObject({
+			command: "reinstall",
+			yes: true,
+		});
+		expect(parseArguments(["install", "--yes"])).toBeNull();
 	});
 });

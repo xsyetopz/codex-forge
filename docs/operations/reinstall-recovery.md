@@ -77,6 +77,7 @@ app server are closed:
 FORGE_CHECKOUT="/path/to/current/codex-forge"
 test -f "$FORGE_CHECKOUT/install.mjs"
 cd "$FORGE_CHECKOUT"
+bun install --frozen-lockfile
 bun install.mjs reinstall
 ```
 
@@ -87,10 +88,14 @@ alongside a newer cache must not select a version.
 The `reinstall` command runs the validated uninstall/purge, supported plugin
 removal, exact Forge-cache cleanup, marketplace restamp, plugin add, installer
 restamp, and doctor in strict sequence. It checks Codex process liveness before
-the first mutation and immediately before every marketplace/plugin mutation;
-any failure stops later steps. `install --purge-cache` remains a diagnostic-safe
-installer operation whose own cache deletion is deferred when cross-process
-ownership cannot be proven.
+the first mutation and immediately before every marketplace/plugin mutation.
+When active Codex CLI, app, or app-server processes are found, the interactive
+command lists them and asks for permission before closing them; use
+`reinstall --yes` for the same shutdown boundary in non-interactive automation.
+After verified shutdown, reinstall removes the exact Forge cache instead of
+emitting the standalone cache-deferral warning. Any failure stops later steps.
+`install --purge-cache` remains a diagnostic-safe installer operation whose own
+cache deletion is deferred when cross-process ownership cannot be proven.
 
 For inspection only, use:
 

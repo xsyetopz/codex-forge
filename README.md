@@ -15,10 +15,12 @@ Initialize the source-audit dependency after cloning with
 
 Prerequisites: Codex CLI 0.152.0 and Bun 1.4 or newer.
 
-Close all Codex CLI/app sessions and the app server before installation,
-upgrade, removal, or version restamping. Then run:
+Close all Codex CLI/app sessions and the app server before direct installation,
+removal, or manual version restamping. Interactive `reinstall` can perform that
+shutdown after confirmation. Then run:
 
 ```sh
+bun install --frozen-lockfile
 codex plugin marketplace add .
 codex plugin add codex-forge@codex-forge
 bun install.mjs install
@@ -42,6 +44,7 @@ bun install.mjs doctor
 bun install.mjs doctor --json
 bun install.mjs install --replace --purge-cache
 bun install.mjs reinstall
+bun install.mjs reinstall --yes
 bun install.mjs revert
 bun install.mjs uninstall
 bun install.mjs uninstall --purge
@@ -52,9 +55,15 @@ bun install.mjs uninstall --purge
 - `uninstall` restores unchanged pre-existing targets and removes unchanged
   Forge-created targets.
 - `uninstall --purge` also removes registration, overrides, and backup history.
-- Cache deletion remains conservative when another process could retain a
-  versioned plugin root.
-- Installer mutations fail closed while Codex processes are active.
+- Cache deletion remains conservative for standalone install, doctor, and
+  uninstall operations when another process could retain a versioned plugin
+  root. Reinstall closes confirmed Codex processes and removes the exact Forge
+  cache before marketplace restamping.
+- Direct install, uninstall, and revert mutations fail closed while Codex
+  processes are active.
+- `reinstall` lists active Codex CLI, app, and app-server processes and asks
+  permission before closing them. `reinstall --yes` provides the same shutdown
+  boundary for non-interactive automation.
 
 The explicit `$forge-setup` skill covers installation, inspection, repair, and
 uninstall. Ordinary software work uses Codex directly with the installed model

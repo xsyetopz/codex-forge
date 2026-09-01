@@ -4,3 +4,4 @@ benchmark-artifacts/
 .ruff_cache/
 .DS_Store
 HANDOFF.md
+node_modules/

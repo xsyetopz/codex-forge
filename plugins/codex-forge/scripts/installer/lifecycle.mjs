@@ -324,7 +324,7 @@ async function uninstallUnlocked(options) {
 		pluginsRemoved = options.skipPluginRemoval
 			? true
 			: await removePluginInstallations(home, configPath);
-		purgeCachedInstalls(home, PLUGIN, null);
+		if (!options.skipCachePurge) purgeCachedInstalls(home, PLUGIN, null);
 		rmSync(join(home, "forge", "backups"), { recursive: true, force: true });
 		try {
 			rmdirSync(join(home, "forge"));

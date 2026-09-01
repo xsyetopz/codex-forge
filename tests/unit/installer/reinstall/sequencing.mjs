@@ -53,19 +53,53 @@ describe("installer sequencing", () => {
 		const { root, home } = fixture();
 		const fake = fakeCodex(root);
 		let terminations = 0;
+		let prompted = 0;
 		const result = await runInjected(
 			home,
 			root,
 			{
+				activeCodexProcesses: () => [
+					{ pid: 4101, command: "codex-app-server", args: "" },
+				],
+				confirmProcessTermination: async (processes) => {
+					prompted += 1;
+					expect(processes.map(({ pid }) => pid)).toEqual([4101]);
+					return true;
+				},
+				terminateCodexProcesses: () => {
+					terminations += 1;
+				},
+				quietTermination: true,
+			},
+			{ CODEX_REINSTALL_LOG: fake.log },
+		);
+		expect(result).toBe(0);
+		expect(prompted).toBe(1);
+		expect(terminations).toBe(2);
+		expect(readFileSync(fake.log, "utf8")).toContain("plugin marketplace add");
+	});
+
+	test("declining process termination cancels reinstall before mutation", async () => {
+		const { root, home } = fixture();
+		const fake = fakeCodex(root);
+		const before = snapshotTree(home);
+		let terminations = 0;
+		const result = await runInjected(
+			home,
+			root,
+			{
+				activeCodexProcesses: () => [{ pid: 4201, command: "codex", args: "" }],
+				confirmProcessTermination: async () => false,
 				terminateCodexProcesses: () => {
 					terminations += 1;
 				},
 			},
 			{ CODEX_REINSTALL_LOG: fake.log },
 		);
-		expect(result).toBe(0);
-		expect(terminations).toBe(2);
-		expect(readFileSync(fake.log, "utf8")).toContain("plugin marketplace add");
+		expect(result).toBe(1);
+		expect(terminations).toBe(0);
+		expect(snapshotTree(home)).toEqual(before);
+		expect(existsSync(fake.log)).toBe(false);
 	});
 
 	test("runReinstall injected uninstall nonzero skips all later stages", async () => {
@@ -92,8 +126,13 @@ describe("installer sequencing", () => {
 				home,
 				root,
 				{
-					uninstallUnlocked: async () => {
+					uninstallUnlocked: async (options) => {
 						calls.push("uninstall");
+						expect(options).toEqual({
+							purge: true,
+							skipPluginRemoval: true,
+							skipCachePurge: true,
+						});
 						return 7;
 					},
 					installUnlocked: async () => {
@@ -213,6 +252,7 @@ describe("installer sequencing", () => {
 			CODEX_REINSTALL_LOG: fake.log,
 		});
 		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).not.toContain("cache purge deferred");
 		expect(existsSync(forgeCache)).toBe(false);
 		expect(readFileSync(join(otherCache, "asset"), "utf8")).toBe("keep");
 		expect(readFileSync(join(home, "auth.json"), "utf8")).toBe("credentials");

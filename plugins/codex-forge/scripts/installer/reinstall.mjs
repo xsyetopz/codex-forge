@@ -17,7 +17,11 @@ import {
 	withInstallerLock,
 	writeAtomic,
 } from "./owners/transaction.mjs";
-import { requireCodexClosed, terminateCodexProcesses } from "./processes.mjs";
+import {
+	activeCodexProcesses,
+	requireCodexClosed,
+	terminateCodexProcesses,
+} from "./processes.mjs";
 import {
 	forgeMarketplaceInstalled,
 	forgePluginInstalled,
@@ -28,12 +32,58 @@ const PLUGIN = "codex-forge";
 const MARKETPLACE = "codex-forge";
 const SELECTOR = `${PLUGIN}@${MARKETPLACE}`;
 
-export async function runReinstall(_options = {}, deps = {}) {
+async function confirmProcessTermination(processes) {
+	if (!process.stdin.isTTY || !process.stdout.isTTY)
+		throw new Error(
+			`active Codex processes require confirmation (${processes
+				.map(({ pid, command }) => `${command} pid ${pid}`)
+				.join(", ")}); rerun interactively or pass reinstall --yes`,
+		);
+	const { cancel, confirm, isCancel, note } = await import("@clack/prompts");
+	note(
+		processes.map(({ pid, command }) => `${command}  pid ${pid}`).join("\n"),
+		"Active Codex processes",
+	);
+	const accepted = await confirm({
+		message: "Close these processes and continue reinstall?",
+		initialValue: true,
+	});
+	if (isCancel(accepted) || !accepted) {
+		cancel("Reinstall cancelled");
+		return false;
+	}
+	return true;
+}
+
+async function terminateWithProgress(terminate, showProgress) {
+	if (!showProgress) return terminate();
+	const { spinner } = await import("@clack/prompts");
+	const progress = spinner();
+	progress.start("Closing Codex processes");
+	try {
+		terminate();
+		progress.stop("Codex processes closed");
+	} catch (error) {
+		progress.error("Unable to close Codex processes");
+		throw error;
+	}
+}
+
+export async function runReinstall(options = {}, deps = {}) {
 	const root = validateCheckout();
 	const home = codexHome();
 	validateCacheRoot(home);
 	const terminate = deps.terminateCodexProcesses ?? terminateCodexProcesses;
-	terminate();
+	const listProcesses = deps.activeCodexProcesses ?? activeCodexProcesses;
+	const active = listProcesses();
+	if (active.length && !options.yes) {
+		const ask = deps.confirmProcessTermination ?? confirmProcessTermination;
+		if (!(await ask(active))) return 1;
+	}
+	await terminateWithProgress(
+		terminate,
+		active.length > 0 && process.stdout.isTTY && !deps.quietTermination,
+	);
 	return withInstallerLock(home, async () => {
 		terminate();
 		const codex = process.env.CODEX_BIN || (await which("codex"));
@@ -60,6 +110,7 @@ export async function runReinstall(_options = {}, deps = {}) {
 		uninstallStatus = await uninstall({
 			purge: true,
 			skipPluginRemoval: true,
+			skipCachePurge: true,
 		});
 		if (uninstallStatus !== 0) {
 			throw new Error(

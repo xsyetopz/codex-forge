@@ -13,7 +13,7 @@ function parseArguments(arguments_) {
 		uninstall: new Set(["--purge"]),
 		revert: new Set(),
 		doctor: new Set(["--json", "--purge-cache"]),
-		reinstall: new Set(),
+		reinstall: new Set(["--yes"]),
 	}[command];
 	if (flags.some((flag) => !allowed.has(flag))) return null;
 	return {
@@ -23,6 +23,7 @@ function parseArguments(arguments_) {
 		purgeCache: flags.includes("--purge-cache"),
 		purge: flags.includes("--purge"),
 		json: flags.includes("--json"),
+		yes: flags.includes("--yes"),
 	};
 }
 export async function main(arguments_ = process.argv.slice(2)) {
