@@ -35,7 +35,7 @@ prefix_rule(pattern=["dotnet",["test","build","format"]], decision="allow", just
 prefix_rule(pattern=[["mvn","mvnw","./mvnw"],["test","verify","package"]], decision="allow", justification="[cf] Maven build or test command.")
 prefix_rule(pattern=[["gradle","gradlew","./gradlew"],["test","check","build"]], decision="allow", justification="[cf] Gradle build or test command.")
 
-# Stock Codex 0.151.0 lowers simple shell command strings before evaluating rules. Complex shell
+# Stock Codex 0.152.0 lowers simple shell command strings before evaluating rules. Complex shell
 # strings can fall back to the outer wrapper as one opaque token, which cannot be constrained by
 # command-family prefixes. Keep that fallback approval-sensitive; direct validation calls match
 # the categorical rules above without granting arbitrary shell-string execution.

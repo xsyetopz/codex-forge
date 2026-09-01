@@ -56,7 +56,7 @@ their owner.
 
 ## Standard Responses requirement
 
-Codex 0.151.0 source shows two transports:
+Codex 0.152.0 source shows two transports:
 
 - Standard Responses sends base instructions as request instructions.
 - Responses Lite rebuilds base instructions and tools as prompt-side developer
@@ -68,7 +68,7 @@ pinned catalog with `use_responses_lite = false` for Sol, Terra, and Luna so
 partial catalog patch is invalid because `model_catalog_json` replaces the
 catalog rather than merging one field.
 
-See the [Codex CLI 0.151.0 source audit](codex-cli-0.151.0.md) for source paths
+See the [Codex CLI 0.152.0 source audit](codex-cli-0.152.0.md) for source paths
 and the exact runtime baseline.
 
 ## Child inheritance and role files
@@ -76,17 +76,18 @@ and the exact runtime baseline.
 Legacy V1 children inherit the parent session's effective base instructions.
 They also inherit the parent's effective compact prompt and live sandbox and
 permission state. Role-local `developer_instructions` replace the root
-developer layer for the child. Codex CLI 0.151.0 then applies a bounded role
+developer layer for the child. Codex CLI 0.152.0 then applies a bounded role
 override containing developer instructions, model and reasoning settings,
-verbosity, personality, service tier, selected feature reductions, and selected
-skill reductions. It excludes `model_instructions_file`, `compact_prompt`,
+verbosity, personality, selected feature reductions, and selected skill
+reductions. Service tier follows the root session. The role projection excludes
+`model_instructions_file`, `compact_prompt`,
 `experimental_compact_prompt_file`, and `sandbox_mode`, so Forge omits those
 misleading keys from role files.
 
 The current OpenAI [custom-agent documentation](https://developers.openai.com/codex/agent-configuration/subagents)
 describes custom agent files as session configuration layers and recommends
 narrow, opinionated agents. Forge's support contract remains the audited
-0.151.0 V1 implementation, whose applied role projection is narrower than the
+0.152.0 V1 implementation, whose applied role projection is narrower than the
 current general documentation.
 
 Forge keeps `features.multi_agent_v2` unset and restamps its GPT-5.6 catalog
@@ -112,7 +113,7 @@ identify the owner, change the narrowest surface, and add a discriminating test.
 ## Change procedure
 
 1. Read the current asset, this contract, relevant observations, and the
-   0.151.0 source audit.
+   0.152.0 source audit.
 2. Change one instruction group at a time and keep each rule in one layer.
 3. Preserve positive phrasing and Role → Goal → Success → Constraints → Tools →
    Output → Stop order.

@@ -75,6 +75,21 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 
 test("README installation and validation commands match distributed entrypoints", () => {
 	const readme = read(join(ROOT, "README.md"));
+	const gitmodules = read(join(ROOT, ".gitmodules"));
+	expect(gitmodules).toContain("path = vendor/codex-cli");
+	expect(gitmodules).toContain("url = https://github.com/openai/codex.git");
+	expect(gitmodules).toContain("update = checkout");
+	expect(gitmodules).toContain("shallow = true");
+	expect(readme).toContain("git submodule update --init vendor/codex-cli");
+	const gitlink = spawnSync(
+		"git",
+		["ls-files", "--stage", "vendor/codex-cli"],
+		{ cwd: ROOT, encoding: "utf8" },
+	);
+	expect(gitlink.status).toBe(0);
+	expect(gitlink.stdout.trim()).toBe(
+		"160000 316795b3cf2a45e90d121d9f46499d4658b2645c 0\tvendor/codex-cli",
+	);
 	for (const command of [
 		"bun install.mjs install",
 		"bun install.mjs doctor",
@@ -93,7 +108,7 @@ test("README installation and validation commands match distributed entrypoints"
 		"docs/operations/reinstall-recovery.md",
 		"docs/operations/compaction.md",
 		"docs/reference/failure-controls.md",
-		"docs/evidence/codex-cli-0.151.0.md",
+		"docs/evidence/codex-cli-0.152.0.md",
 		"docs/evidence/community-observations.md",
 		"docs/evidence/model-instructions.md",
 		"docs/evidence/research-synthesis.md",

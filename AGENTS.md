@@ -9,7 +9,7 @@ sessions lives in plugin assets, not in this file.
 | Question | Canonical owner |
 | --- | --- |
 | Why Forge replaces stock `default.md`, Lite vs standard Responses, V1 catalog restamp, child instruction inheritance | [model instruction evidence](docs/evidence/model-instructions.md) |
-| Exact Codex CLI 0.151.0 capability baseline | [0.151.0 source audit](docs/evidence/codex-cli-0.151.0.md) |
+| Exact Codex CLI 0.152.0 capability baseline | [0.152.0 source audit](docs/evidence/codex-cli-0.152.0.md) |
 | External harness and academic prior art | [research synthesis](docs/evidence/research-synthesis.md) |
 | Failure shape → lowest Forge layer | [failure controls](docs/reference/failure-controls.md) |
 | Local and community observations | [session evidence](docs/evidence/session-observations.md) and [community observations](docs/evidence/community-observations.md) |
@@ -32,9 +32,10 @@ instruction-layer edits.
 - `plugins/codex-forge/assets/developer-instructions.txt` owns root delegation,
   role routing, and review policy. Same ban on negative constructions. Role
   TOMLs own child differentiation and replace the root developer layer for the
-  child. On Codex CLI 0.151.0, children inherit the parent base instructions,
+  child. On Codex CLI 0.152.0, children inherit the parent base instructions,
   compact prompt, sandbox, and permissions; role-local copies of those settings
-  are parsed but excluded from the applied role override.
+  are parsed but excluded from the applied role override. Children also inherit
+  the root service tier, so role files omit it.
 - One observed failure is not a license to add a wide rule. The PCSX2
   check-before-use case inverted stated order; it did not justify a universal
   flags-from-docs policy.
@@ -45,9 +46,10 @@ instruction-layer edits.
   Install copies the pinned complete `model_catalog_json`, whose Forge slugs
   use V1 and `use_responses_lite = false` (standard Responses, true replace).
   Details and citations are in the model-instruction audit.
-- Leave token-budget compaction unset on CLI 0.151.0. The 0.150.1 retained-image
-  budgeting fix and 0.151.0 nested-subagent goal accounting are upstream
-  improvements; neither supplies the durable checkpoint service required for
-  Forge to opt into token-budget resets.
+- Pin `features.token_budget = false` on CLI 0.152.0. Model metadata can now
+  activate token budgeting when configuration is silent; Forge still lacks the
+  durable checkpoint service required for fresh-window resets.
+- Enable `tools.update_plan` explicitly because 0.152.0 makes it opt-in and
+  Forge uses plan state as an observable coordination surface.
 - After install or hook-definition changes, a fresh Codex thread and `/hooks`
   trust review are still required.

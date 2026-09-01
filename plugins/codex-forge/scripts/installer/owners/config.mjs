@@ -22,6 +22,7 @@ const ROOT_KEYS = new Set([
 const TABLE_KEYS = {
 	sandbox_workspace_write: new Set(["network_access"]),
 	tui: new Set(["status_line", "terminal_title"]),
+	"tools.update_plan": new Set(["enabled"]),
 	agents: new Set([
 		"default_subagent_model",
 		"default_subagent_reasoning_effort",
@@ -38,6 +39,7 @@ const TABLE_KEYS = {
 		"personality",
 		"prevent_idle_sleep",
 		"mcp_2026_07_28",
+		"token_budget",
 	]),
 };
 const TABLE_PASSTHROUGH_KEYS = {
@@ -123,16 +125,52 @@ const EXPECTED_SCOPES = new Map([
 	["root", ROOT_KEYS],
 	["sandbox_workspace_write", TABLE_KEYS.sandbox_workspace_write],
 	["tui", TABLE_KEYS.tui],
+	["tools.update_plan", TABLE_KEYS["tools.update_plan"]],
 	["agents", TABLE_KEYS.agents],
 	["apps._default", TABLE_KEYS["apps._default"]],
 	["features", TABLE_KEYS.features],
 ]);
-const LEGACY_SCOPES_WITHOUT_TUI = new Set(
-	[...EXPECTED_SCOPES.keys()].filter((scope) => scope !== "tui"),
-);
+const CURRENT_SCOPES = new Set(EXPECTED_SCOPES.keys());
+const LEGACY_SCOPE_LAYOUTS = [
+	new Set([...CURRENT_SCOPES].filter((scope) => scope !== "tools.update_plan")),
+	new Set(
+		[...CURRENT_SCOPES].filter(
+			(scope) => scope !== "tui" && scope !== "tools.update_plan",
+		),
+	),
+];
+const LEGACY_SCOPE_KEYS = {
+	features: new Set(
+		[...TABLE_KEYS.features].filter((key) => key !== "token_budget"),
+	),
+};
 
 const sameSet = (left, right) =>
 	left.size === right.size && [...left].every((value) => right.has(value));
+
+function splitOwnedBody(body, scope) {
+	const headers = [...body.matchAll(/^\s*\[([^[\]]+)]\s*(?:#.*)?$/gm)];
+	if (!headers.length) return [body, ""];
+	const firstIsOwnedHeader = headers[0][1].trim() === scope;
+	const boundaryHeader = firstIsOwnedHeader ? headers[1] : headers[0];
+	if (!boundaryHeader) return [body, ""];
+	const boundary = boundaryHeader.index;
+	return [body.slice(0, boundary), body.slice(boundary)];
+}
+
+function removeEmptyCreatedTables(text, createdTables) {
+	const created = new Set(createdTables ?? []);
+	if (!created.size) return text;
+	const [root, sections] = splitSections(text);
+	return [
+		...root,
+		...sections.flatMap(([name, lines]) =>
+			created.has(name) && lines.slice(1).every((line) => !line.trim())
+				? []
+				: lines,
+		),
+	].join("");
+}
 
 export function parseManagedConfig(text, { requirePresent = false } = {}) {
 	const lines = text.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [];
@@ -157,15 +195,17 @@ export function parseManagedConfig(text, { requirePresent = false } = {}) {
 				throw new Error("config.toml contains an unmatched Forge close marker");
 			const body = text.slice(open + OPEN.length + 1, start);
 			const bodyScope = body.match(/^\[([^\]]+)\]/m)?.[1];
-			const scope = bodyScope ?? table;
+			const scope =
+				bodyScope && EXPECTED_SCOPES.has(bodyScope) ? bodyScope : table;
 			if (scope !== "root" && !EXPECTED_SCOPES.has(scope))
 				throw new Error(
 					`config.toml contains an unknown Forge scope: ${scope}`,
 				);
 			if (seen.has(scope))
 				throw new Error(`config.toml contains duplicate Forge scope: ${scope}`);
+			const [ownedBody, trailingBody] = splitOwnedBody(body, scope);
 			const keys = new Set(
-				body
+				ownedBody
 					.split("\n")
 					.map((value) => assignmentKey(value))
 					.filter(Boolean),
@@ -176,18 +216,30 @@ export function parseManagedConfig(text, { requirePresent = false } = {}) {
 			const unexpected = [...keys].filter(
 				(key) => !expected.has(key) && !passthrough.has(key),
 			);
-			if ([...expected].some((key) => !keys.has(key)) || unexpected.length)
+			const legacyExpected = LEGACY_SCOPE_KEYS[scope];
+			const hasExpectedSignature = [expected, legacyExpected]
+				.filter(Boolean)
+				.some(
+					(signature) =>
+						[...signature].every((key) => keys.has(key)) &&
+						[...keys].every(
+							(key) => signature.has(key) || passthrough.has(key),
+						),
+				);
+			if (!hasExpectedSignature || unexpected.length)
 				throw new Error(
 					`config.toml Forge scope has an unexpected managed-key signature: ${scope}`,
 				);
 			seen.add(scope);
 			const hasPassthrough = [...keys].some((key) => passthrough.has(key));
-			const replacement = hasPassthrough
-				? removeKeys(
-						body.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [],
-						expected,
-					).join("")
-				: "";
+			let replacement = "";
+			if (hasPassthrough) {
+				replacement = removeKeys(
+					ownedBody.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [],
+					expected,
+				).join("");
+			}
+			replacement += trailingBody;
 			blocks.push({
 				start: open,
 				end: start + raw.length,
@@ -208,8 +260,8 @@ export function parseManagedConfig(text, { requirePresent = false } = {}) {
 		throw new Error("config.toml is missing its recorded Forge block");
 	if (
 		blocks.length &&
-		!sameSet(seen, new Set(EXPECTED_SCOPES.keys())) &&
-		!sameSet(seen, LEGACY_SCOPES_WITHOUT_TUI)
+		!sameSet(seen, CURRENT_SCOPES) &&
+		!LEGACY_SCOPE_LAYOUTS.some((layout) => sameSet(seen, layout))
 	)
 		throw new Error(
 			"config.toml is missing one or more canonical Forge scopes",
@@ -222,7 +274,7 @@ export function stripManaged(text, options = {}) {
 	let output = text;
 	for (const block of [...parsed.blocks].reverse())
 		output = `${output.slice(0, block.start)}${block.replacement}${output.slice(block.end)}`;
-	return output;
+	return removeEmptyCreatedTables(output, options.createdTables);
 }
 
 function withSchemaDirective(text) {
@@ -278,6 +330,7 @@ function fragments(home, pluginRoot, maxConcurrentThreads) {
 			'status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit"]',
 			'terminal_title = ["project", "git-branch", "status", "thread", "task-progress"]',
 		],
+		"tools.update_plan": ["enabled = true"],
 		agents: [
 			'default_subagent_model = "gpt-5.6-luna"',
 			'default_subagent_reasoning_effort = "medium"',
@@ -294,6 +347,7 @@ function fragments(home, pluginRoot, maxConcurrentThreads) {
 			"personality = false",
 			"prevent_idle_sleep = true",
 			"mcp_2026_07_28 = true",
+			"token_budget = false",
 		],
 	};
 	return [root, tables];
@@ -336,7 +390,7 @@ export function mergeConfig(
 			createdTables.push(table);
 			sections.push([
 				table,
-				managedBlock(`table:${table}`, [`[${table}]`, ...additions]),
+				[`[${table}]\n`, ...managedBlock(table, additions)],
 			]);
 		}
 	}

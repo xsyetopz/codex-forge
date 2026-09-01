@@ -60,7 +60,7 @@ function _fakeCodex(
 		marketplace = true,
 		fail = "",
 		failBun = "",
-		codexVersion = "0.151.0",
+		codexVersion = "0.152.0",
 		entry,
 		pluginListOutput,
 	} = {},
@@ -385,7 +385,7 @@ describe("installer lifecycle", () => {
 		expect(parsed.features.mcp_2026_07_28).toBe(true);
 		expect(parsed.agents["forge-worker"]).toBeUndefined();
 		expect(existsSync(join(home, "agents", "forge-worker.toml"))).toBe(true);
-		expect(parsed.features.token_budget).toBeUndefined();
+		expect(parsed.features.token_budget).toBe(false);
 		expect(parsed.profiles).toBeUndefined();
 		expect(parsed.agents.custom.description).toBe("keep");
 		expect(parsed.apps._default.extra).toBe("keep");

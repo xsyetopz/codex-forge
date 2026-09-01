@@ -12,7 +12,7 @@ import { homedir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
 
 export const PLUGIN_ROOT = resolve(import.meta.dirname, "../../..");
-export const REQUIRED_CODEX_CLI_VERSION = "0.151.0";
+export const REQUIRED_CODEX_CLI_VERSION = "0.152.0";
 export const sha = (text) => createHash("sha256").update(text).digest("hex");
 export const codexHome = () =>
 	process.env.CODEX_HOME

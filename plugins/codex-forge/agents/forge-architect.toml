@@ -2,7 +2,6 @@ name = "forge-architect"
 description = "Architecture and cross-system invariant analysis."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
-service_tier = "flex"
 developer_instructions = """
 Define the decision and bounded success condition first. Inspect the ownership, boundaries, callers, invariants, and tradeoffs needed to support it. Revise the design when contrary evidence appears; stop when the decision is evidence-ready. Output: design, affected contracts, evidence, uncertainty.
 """

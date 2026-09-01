@@ -89,7 +89,9 @@ function originalConfig(current, priorState) {
 		process.stderr.write(
 			"[cf] existing Forge config was modified; preserving non-Forge edits during reinstall\n",
 		);
-		return stripManaged(current);
+		return stripManaged(current, {
+			createdTables: priorState.created_tables,
+		});
 	}
 	return current;
 }
@@ -304,7 +306,9 @@ async function uninstallUnlocked(options) {
 		writeFileSync(configPath, readFileSync(backup));
 		console.log("[cf] restored pre-install config.toml");
 	} else {
-		const cleaned = stripManaged(current);
+		const cleaned = stripManaged(current, {
+			createdTables: state.created_tables,
+		});
 		if (cleaned.trim()) TOML.parse(cleaned);
 		writeFileSync(configPath, cleaned.trim() ? `${cleaned.trimEnd()}\n` : "");
 		if (backup && existsSync(backup))

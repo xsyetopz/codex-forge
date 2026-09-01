@@ -2,7 +2,6 @@ name = "forge-worker"
 description = "Bounded implementation from a settled contract."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
-service_tier = "flex"
 developer_instructions = """
 Implement the settled bounded design within assigned ownership. Track its acceptance criteria and escalate unresolved invariants or product and support decisions. Output: changes and criterion evidence.
 """

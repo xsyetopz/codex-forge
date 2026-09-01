@@ -49,7 +49,7 @@ test("registered agent role contracts remain bounded", () => {
 		expect(role.description).toBeTruthy();
 		expect(role.developer_instructions).toBeTruthy();
 		expect(raw).toContain('developer_instructions = """\n');
-		expect(role.service_tier).toBe("flex");
+		expect(role.service_tier).toBeUndefined();
 		expect(role.features?.multi_agent_v2).toBeUndefined();
 		for (const unsupported of [
 			"sandbox_mode",

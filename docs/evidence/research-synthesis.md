@@ -9,7 +9,7 @@ debugging, and human control. Its useful organizing principle for Forge is that
 scaffolding assumptions expire as native model/runtime capabilities improve.
 
 Forge applies that principle by deleting its duplicate agent scheduler and
-using native Codex 0.151.0 interrupt/close/state behavior. Deterministic Forge
+using native Codex 0.152.0 interrupt/close/state behavior. Deterministic Forge
 code remains for installer transactions, owned files, exact prompt assets, and
 bounded continuity—areas Codex does not own for this plugin.
 
@@ -83,7 +83,7 @@ no-Stop/no-control-tool-matcher invariant.
 
 ## Open thread
 
-Codex 0.151.0 exposes native cancellation and persisted spawn-edge closure, but
+Codex 0.152.0 exposes native cancellation and persisted spawn-edge closure, but
 the abstracts and release source do not establish a cross-process receipt that
 proves every external side effect stopped. Forge should treat that as a runtime
 verification boundary rather than inventing one in prompt text.
@@ -154,7 +154,7 @@ family and decision oracle are available from the hook payload.
 
 No Forge skill is added. Skills are selectively loaded workflows; this is
 cross-cutting default response behavior with no distinct user-invoked task.
-No Stop hook is added. Codex 0.151.0 can feed a blocked final response back to
+No Stop hook is added. Codex 0.152.0 can feed a blocked final response back to
 the model, but that reintroduces mandatory continuation authority and cannot
 reliably classify requested social text from operational recovery.
 

@@ -4,7 +4,7 @@ Codex Forge has four runtime owners with one-way dependencies.
 
 | Owner | Responsibility | Depends on |
 | --- | --- | --- |
-| Plugin assets | Base identity, developer routing, model catalog, roles, rules | Codex 0.151.0 configuration contracts |
+| Plugin assets | Base identity, developer routing, model catalog, roles, rules | Codex 0.152.0 configuration contracts |
 | Installer | Transactional ownership of user-level Forge files and configuration | Plugin assets and filesystem transaction helpers |
 | Hooks | Small event adapters for continuity and spawn-boundary enforcement | Codex hook JSON contract and `scripts/lib/continuity-state.mjs` |
 | Tests | Executable product and lifecycle contracts | Canonical assets and public entrypoints |
@@ -28,7 +28,7 @@ Forge hooks are adapters, not a workflow scheduler. The current surface is:
 | `SubagentStop` | Record the final bounded handoff |
 | `SessionEnd` | Clear per-session continuity state |
 
-Forge deliberately has no `Stop` hook. Codex 0.151.0 treats a blocking Stop or
+Forge deliberately has no `Stop` hook. Codex 0.152.0 treats a blocking Stop or
 SubagentStop hook as a continuation request, so a mandatory worker/reviewer
 state machine at that boundary can override a later user instruction to stop.
 Agent interruption, closure, waiting, and messaging remain native Codex tools

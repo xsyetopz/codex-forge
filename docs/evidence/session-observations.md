@@ -34,7 +34,7 @@ Root causes confirmed in the then-current Forge code:
 - the spawn-boundary hook also matched `send_input`, `wait_agent`, and
   `close_agent`, then applied spawn-only validation to those calls;
 - Stop/SubagentStop were treated as passive lifecycle notifications even though
-  Codex 0.151.0 gives them continuation control.
+  Codex 0.152.0 gives them continuation control.
 
 The repair removes the workflow state, narrows PreToolUse to spawn only, removes
 the Stop hook, and leaves native cancellation/control tools unobstructed.

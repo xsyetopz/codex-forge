@@ -57,7 +57,7 @@ function fakeCodex(
 		marketplace = true,
 		fail = "",
 		failBun = "",
-		codexVersion = "0.151.0",
+		codexVersion = "0.152.0",
 		entry,
 		pluginListOutput,
 	} = {},

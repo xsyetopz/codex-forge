@@ -1,6 +1,6 @@
 # Codex Forge
 
-Codex Forge is a Codex CLI 0.151.0 plugin and installer. It supplies a lean
+Codex Forge is a Codex CLI 0.152.0 plugin and installer. It supplies a lean
 replacement model identity, task-shaped agent roles, focused continuity hooks,
 a pinned model catalog, CodeGraph integration, and transactional user-level
 configuration. Codex remains the owner of approvals, sandboxing, agent
@@ -8,10 +8,12 @@ cancellation, and agent lifecycle.
 
 Maintainers start with [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md),
 and the [documentation index](docs/README.md).
+Initialize the source-audit dependency after cloning with
+`git submodule update --init vendor/codex-cli`.
 
 ## Install
 
-Prerequisites: Codex CLI 0.151.0 and Bun 1.4 or newer.
+Prerequisites: Codex CLI 0.152.0 and Bun 1.4 or newer.
 
 Close all Codex CLI/app sessions and the app server before installation,
 upgrade, removal, or version restamping. Then run:
@@ -73,7 +75,7 @@ remove stock identity clauses.
 The pinned full model catalog sets Forge GPT-5.6 entries to
 `use_responses_lite = false`, so standard Responses uses the configured base
 instructions as the replacement layer. See [model instruction evidence](docs/evidence/model-instructions.md)
-and the [0.151.0 source audit](docs/evidence/codex-cli-0.151.0.md).
+and the [0.152.0 source audit](docs/evidence/codex-cli-0.152.0.md).
 
 ### Agent routing
 
@@ -105,15 +107,15 @@ remain:
 - `SubagentStop/record-handoff`
 - `SessionEnd/clear-continuity`
 
-There is no Forge Stop hook. Codex 0.151.0 turns a blocking Stop result into a
+There is no Forge Stop hook. Codex 0.152.0 turns a blocking Stop result into a
 continuation prompt, which makes it unsuitable for mandatory review policy.
 Shared observational state lives in `scripts/lib/continuity-state.mjs` and
 cannot authorize new agent work.
 
 V1 children inherit the parent session's effective base instructions and local
 compact prompt. Their role TOML replaces the root developer instruction layer
-with role-specific behavior; Codex 0.151.0 drops role-local base-instruction,
-compact-prompt, and sandbox settings from the applied override.
+with role-specific behavior; Codex 0.152.0 drops role-local base-instruction,
+compact-prompt, sandbox, and service-tier settings from the applied override.
 
 ### Permissions
 
@@ -128,7 +130,8 @@ Forge uses summary-backed compaction. The checked-in compact prompt is the
 local/custom-provider override and handoff specification; hosted sessions use
 Codex remote compaction. Bounded child handoffs and explicit `!RAW` text are
 stored for resume/compact continuity, but the store has no scheduler state.
-Token-budget compaction stays unset on 0.151.0. See [compaction](docs/operations/compaction.md).
+Forge pins token-budget compaction off on 0.152.0 because model metadata can now
+activate it when configuration is silent. See [compaction](docs/operations/compaction.md).
 
 ### CodeGraph
 
@@ -139,8 +142,11 @@ Repository indexing remains an explicit user decision; Forge synchronizes an
 existing index before graph-dependent work when source changes may have made it
 stale.
 
-The exact Codex 0.151.0 source used for this audit is copied to
-`vendor/codex-cli-0.151.0` and indexed with CodeGraph.
+The exact Codex 0.152.0 source used for this audit is a shallow Git submodule at
+the stable `vendor/codex-cli` path. Its gitlink is pinned to the peeled commit
+for the latest stable `rust-v*` tag verified on September 1, 2026. Submodules do
+not support a floating "latest tag" selector; checkout mode deliberately keeps
+the audited commit fixed until the next explicit release audit.
 
 ## Validate
 

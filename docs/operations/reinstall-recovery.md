@@ -129,7 +129,7 @@ The expected evidence is a managed `model_catalog_json` pointing at
 slugs `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`, each with
 `"multi_agent_version": "v1"` and `"use_responses_lite": false`. The final
 `doctor` report should also show the current installed/source version and no
-Codex CLI compatibility failure: the installed CLI must be version 0.151.0 or
+Codex CLI compatibility failure: the installed CLI must be version 0.152.0 or
 newer, and missing or malformed `codex --version` output is unhealthy. The JSON
 and human reports use the same compatibility decision.
 unexpected upgrade or override findings. Hook trust remains a manual `/hooks`

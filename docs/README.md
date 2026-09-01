@@ -11,7 +11,7 @@ surfaces and records why they exist.
 | --- | --- |
 | Install, doctor, revert, or uninstall | [README](../README.md) and [managed-file lifecycle](../plugins/codex-forge/skills/forge-setup/references/managed-files.md) |
 | Forge architecture and ownership | [architecture](architecture.md) |
-| Exact Codex CLI 0.151.0 capability baseline | [Codex CLI 0.151.0 source audit](evidence/codex-cli-0.151.0.md) |
+| Exact Codex CLI 0.152.0 capability baseline | [Codex CLI 0.152.0 source audit](evidence/codex-cli-0.152.0.md) |
 | GPT-5.6 prompt and model-instruction rationale | [model instruction contract](evidence/model-instructions.md) |
 | Local session observations | [session evidence](evidence/session-observations.md) |
 | Reddit observations | [community evidence](evidence/community-observations.md) and immutable captures under [`reddit/`](reddit/) |

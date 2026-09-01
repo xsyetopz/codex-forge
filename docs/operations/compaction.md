@@ -39,11 +39,11 @@ The custom compact prompt was not the cause of this incident: token-budget compa
 
 ### Standard summarizing compaction
 
-Forge leaves `features.token_budget` unset so Codex uses summary-producing compaction instead of a fresh token-budget context reset.
+Forge explicitly sets `features.token_budget = false` so Codex uses summary-producing compaction instead of a fresh token-budget context reset. This explicit value is required on Codex CLI 0.152.0 because model-catalog metadata can enable token budgeting when the user configuration is silent.
 
 On OpenAI-hosted and Azure-hosted models, Codex selects remote compaction. The local `compact_prompt` / `experimental_compact_prompt_file` override is consumed by the local/custom-provider branch, not by the hosted remote-compaction branch. Forge therefore treats its custom compact prompt as a local-provider fallback and documented handoff specification, not as the continuity guarantee for normal hosted Codex sessions. Hosted continuity instead relies on Codex's remote compaction plus Forge's independently persisted orchestration handoffs and deterministic lifecycle recovery.
 
-Codex CLI 0.151.0 V1 children clone the parent-effective compact prompt. Their
+Codex CLI 0.152.0 V1 children clone the parent-effective compact prompt. Their
 automatic and manual local compaction uses that inherited value, while
 role-local `compact_prompt` and `experimental_compact_prompt_file` settings are
 excluded from the applied role override. Per-role compaction prompts are
@@ -87,7 +87,7 @@ through `developer_instructions`. Local/custom-provider compaction uses the chec
 
 | 0.1.0-alpha.4 state | Reason |
 | --- | --- |
-| Summary-backed rather than token-budget compaction | `features.token_budget` remains unset. Hosted models use Codex remote compaction; local/custom providers use the local summary path. |
+| Summary-backed rather than token-budget compaction | `features.token_budget = false` overrides model-catalog defaults. Hosted models use Codex remote compaction; local/custom providers use the local summary path. |
 | Local/custom-provider execution checkpoint | `assets/compact-prompt.md` records request mode, objective, exact decisions, worktree state, validation, Forge/CodeGraph evidence, child handoffs, blockers, and the next action when the local branch is selected. |
 | Forge model instruction layer | `assets/model-instructions.md` is installed at `$CODEX_HOME/forge/model-instructions.md` and selected through `model_instructions_file`. |
 | Forge developer instruction layer | `assets/developer-instructions.txt` is installed through `developer_instructions`. |
@@ -95,7 +95,7 @@ through `developer_instructions`. Local/custom-provider compaction uses the chec
 
 Token-budget mode can be reconsidered when the target Codex version provides a durable checkpoint service in the active tool surface, the rollover guidance matches that service, and an integration test demonstrates that an unfinished task continues without user restatement.
 
-### Codex CLI 0.150.1 and 0.151.0 compatibility
+### Codex CLI 0.150.1, 0.151.0, and 0.152.0 compatibility
 
 Codex CLI 0.150.1 keeps the compaction paths above and enables retained-image
 budgeting for remote compaction by default. Retained images now count against
@@ -117,13 +117,18 @@ restoration, and MCP result/error handling. Forge consumes these through the
 native CLI and does not duplicate them in prompts or speculative configuration.
 See the [0.151.0 release](https://github.com/openai/codex/releases/tag/rust-v0.151.0).
 
-The acceptance boundary remains unchanged: Forge leaves `features.token_budget` unset and uses deterministic root goal budgets plus summary-backed compaction. Hosted summary content remains upstream-owned; Forge's durable orchestration state is the independent recovery layer it can enforce. Neither 0.150.1 nor 0.151.0 provides a reason to re-enable Forge's prior token-budget reset configuration, so manual `model_context_window` or `auto_compact` limits are not installed from community snippets.
+Codex CLI 0.152.0 allows model metadata to enable token budgeting by default when
+the user configuration does not set the feature. Forge's pinned catalog contains
+that metadata, so silence no longer preserves the summary-backed boundary. Forge
+therefore installs an explicit false value.
+
+The acceptance boundary remains unchanged: Forge explicitly disables `features.token_budget` and uses deterministic root goal budgets plus summary-backed compaction. Hosted summary content remains upstream-owned; Forge's durable orchestration state is the independent recovery layer it can enforce. None of these upstream releases provides a reason to enable Forge's prior token-budget reset configuration, so manual `model_context_window` or `auto_compact` limits are not installed from community snippets.
 
 ## Ownership and regression protection
 
 | Concern | Canonical Forge owner | Verification |
 | --- | --- | --- |
-| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/owners/config.mjs` | Installer test asserts that a fresh Forge configuration doesn't contain `features.token_budget`. |
+| Select standard rather than token-budget compaction | `assets/config-template.toml` and `scripts/installer/owners/config.mjs` | Installer test asserts that a fresh Forge configuration sets `features.token_budget = false`. |
 | Specify the local/custom-provider checkpoint | `assets/compact-prompt.md` | Installed asset mapping and repository contract validation; hosted compaction does not consume this local prompt. |
 | Select lean Forge model instructions | `assets/model-instructions.md` and `scripts/installer/owners/config.mjs` | Installer mapping, exact managed path, and repository contract validation. |
 | Add lean Forge developer instructions | `assets/developer-instructions.txt` and `scripts/installer/owners/config.mjs` | Installed asset mapping and repository contract validation. |
@@ -134,6 +139,6 @@ The acceptance boundary remains unchanged: Forge leaves `features.token_budget` 
 
 - Repository contract, installer, schema, and skill validation cover the alpha.4 configuration and distributed assets.
 - Hook/plugin schemas and all seven skill packages validated.
-- A local Forge reinstall removed `features.token_budget` from the effective configuration.
+- A local Forge reinstall set `features.token_budget = false` in the effective configuration.
 - `bun install.mjs doctor --json` reported the installation healthy and current.
 - A forced live context-exhaustion run was not performed, so end-to-end rollover behavior remains **UNVERIFIED**.

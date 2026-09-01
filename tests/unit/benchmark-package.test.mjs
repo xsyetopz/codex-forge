@@ -170,6 +170,8 @@ test("generated config keeps Forge instruction paths absolute and portable", () 
 	);
 	expect(TOML.parse(config).tui.status_line).toContain("context-used");
 	expect(TOML.parse(config).tui.terminal_title).toContain("task-progress");
+	expect(TOML.parse(config).tools.update_plan.enabled).toBe(true);
+	expect(TOML.parse(config).features.token_budget).toBe(false);
 });
 
 test("package builder rejects stale output and source symlinks", () => {

@@ -4,7 +4,7 @@ This reference maps observed failure shapes to their lowest current Forge owner.
 
 This is an implementation cross-reference, not a validator schema. Each source failure is mapped to the lowest Forge layer that can materially address it. Prompt-only items aren't represented as hard runtime guarantees.
 
-For context continuity specifically, Forge selects standard summary-backed compaction in configuration, uses the compact prompt to produce the handoff, and uses base instructions to consume it. Token-budget context resets remain disabled because their fresh-window path lacks the durable checkpoint contract Forge requires; Codex CLI 0.150.1 retained-image accounting and 0.151.0 nested-goal accounting do not change that boundary. See [context compaction](../operations/compaction.md).
+For context continuity specifically, Forge selects standard summary-backed compaction in configuration, uses the compact prompt to produce the handoff, and uses base instructions to consume it. Token-budget context resets remain disabled because their fresh-window path lacks the durable checkpoint contract Forge requires; Codex CLI 0.150.1 retained-image accounting, 0.151.0 nested-goal accounting, and 0.152.0 model-owned token-budget defaults do not change that boundary. Forge explicitly pins the latter off. See [context compaction](../operations/compaction.md).
 
 | Category | Failure | Forge control |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Failure-recovery blindness | base instructions + stop/completion contract |
 | Workflow & stopping | Social-script substitution during execution-failure recovery | base Output contract requires an operational task-state update; hosted behavior remains observational until live evaluation |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
-| Workflow & stopping | Goal pause/block conflation | Codex 0.151.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
+| Workflow & stopping | Goal pause/block conflation | Codex 0.152.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
 | Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Duplicate multi-agent work | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Delegation or review ceremony exceeds task value | zero-child option + risk-driven review + bounded role routing |

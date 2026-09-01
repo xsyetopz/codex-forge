@@ -79,6 +79,8 @@ describe("installer lifecycle", () => {
 			"thread",
 			"task-progress",
 		]);
+		expect(parsed.tools.update_plan.enabled).toBe(true);
+		expect(parsed.features.token_budget).toBe(false);
 	});
 
 	test("normalizes the schema directive and preserves unrelated TUI keys", () => {
@@ -185,20 +187,29 @@ describe("installer lifecycle", () => {
 				.max_concurrent_threads_per_session,
 		).toBe(8);
 	});
-	test("adds the TUI scope to a pre-TUI managed installation", () => {
+	test("adds 0.152 config scopes to a prior managed installation", () => {
 		const { home } = fixture();
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		const configPath = join(home, "config.toml");
-		const legacy = readFileSync(configPath, "utf8").replace(
-			/\n# >>> codex-forge >>>\n\[tui]\n[\s\S]*?# <<< codex-forge <<<\n/,
-			"",
-		);
+		const legacy = readFileSync(configPath, "utf8")
+			.replace(
+				/\n\[tui]\n# >>> codex-forge >>>\n[\s\S]*?# <<< codex-forge <<<\n/,
+				"",
+			)
+			.replace(
+				/\n\[tools\.update_plan]\n# >>> codex-forge >>>\n[\s\S]*?# <<< codex-forge <<<\n/,
+				"",
+			)
+			.replace("token_budget = false\n", "");
 		expect(legacy).not.toContain("[tui]");
 		writeFileSync(configPath, legacy);
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		expect(
 			TOML.parse(readFileSync(configPath, "utf8")).tui.status_line,
 		).toContain("context-used");
+		expect(
+			TOML.parse(readFileSync(configPath, "utf8")).tools.update_plan.enabled,
+		).toBe(true);
 	});
 	test("moves valid sandbox settings outside the Forge-owned slice", () => {
 		const { home } = fixture();
@@ -208,8 +219,8 @@ describe("installer lifecycle", () => {
 		writeFileSync(
 			configPath,
 			current.replace(
-				"[sandbox_workspace_write]\nnetwork_access = true\n# <<< codex-forge <<<",
-				'[sandbox_workspace_write]\nnetwork_access = true\nexclude_slash_tmp = true\nwritable_roots = ["/tmp/forge-extra"]\n# <<< codex-forge <<<',
+				"network_access = true\n# <<< codex-forge <<<",
+				'network_access = true\nexclude_slash_tmp = true\nwritable_roots = ["/tmp/forge-extra"]\n# <<< codex-forge <<<',
 			),
 		);
 		expect(install(home, "uninstall").exitCode).toBe(0);
@@ -227,6 +238,42 @@ describe("installer lifecycle", () => {
 		]);
 		expect(migrated).toMatch(
 			/\[sandbox_workspace_write]\n# >>> codex-forge >>>\nnetwork_access = true\n# <<< codex-forge <<<\nexclude_slash_tmp = true\nwritable_roots/,
+		);
+	});
+	test("recovers a created sandbox marker extended across Codex hook state", () => {
+		const { home } = fixture();
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const configPath = join(home, "config.toml");
+		let current = readFileSync(configPath, "utf8")
+			.replace(
+				/\n\[tui]\n# >>> codex-forge >>>\n[\s\S]*?# <<< codex-forge <<<\n/,
+				"",
+			)
+			.replace(
+				/\n\[tools\.update_plan]\n# >>> codex-forge >>>\n[\s\S]*?# <<< codex-forge <<<\n/,
+				"",
+			)
+			.replace("token_budget = false\n", "");
+		current = current.replace(
+			"network_access = true\n# <<< codex-forge <<<",
+			'network_access = true\n\n[hooks.state]\n\n[hooks.state."codex-forge:test"]\ntrusted_hash = "keep"\n# <<< codex-forge <<<',
+		);
+		writeFileSync(configPath, current);
+
+		expect(install(home, "uninstall").exitCode).toBe(0);
+		const uninstalled = readFileSync(configPath, "utf8");
+		expect(uninstalled).not.toContain("# >>> codex-forge >>>");
+		expect(
+			TOML.parse(uninstalled).hooks.state["codex-forge:test"].trusted_hash,
+		).toBe("keep");
+		expect(uninstalled).not.toContain("[sandbox_workspace_write]");
+		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+		const reinstalled = readFileSync(configPath, "utf8");
+		expect(
+			TOML.parse(reinstalled).hooks.state["codex-forge:test"].trusted_hash,
+		).toBe("keep");
+		expect(reinstalled).toMatch(
+			/\[sandbox_workspace_write]\n# >>> codex-forge >>>\nnetwork_access = true\n# <<< codex-forge <<</,
 		);
 	});
 	test("preserves a customized cap inside a Forge-managed block", () => {

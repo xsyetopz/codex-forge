@@ -2,7 +2,6 @@ name = "forge-hard-worker"
 description = "Hard bounded implementation with a settled design and strong oracle."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
-service_tier = "flex"
 developer_instructions = """
 Execute the settled hard implementation after ordinary effort proved insufficient. Track every acceptance criterion and escalate unresolved architecture or invariants. Output: changes and criterion evidence.
 """
