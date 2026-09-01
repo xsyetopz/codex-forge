@@ -54,6 +54,7 @@ const regularFiles = (root) => {
 export function renderConfig(remoteHome = DEFAULT_REMOTE_HOME) {
 	const pluginRoot = `${remoteHome}/plugins/codex-forge`;
 	return [
+		`#:schema https://developers.openai.com/codex/config-schema.json`,
 		// Match the installer asset contract: boundary whitespace is intentionally trimmed.
 		`developer_instructions = ${tomlMultilineBasicString(readFileSync(resolve(import.meta.dir, "../../assets/developer-instructions.txt"), "utf8").trim())}`,
 		`model = "gpt-5.6-sol"`,
@@ -71,6 +72,9 @@ export function renderConfig(remoteHome = DEFAULT_REMOTE_HOME) {
 		`sandbox_mode = "workspace-write"`,
 		`[sandbox_workspace_write]`,
 		`network_access = true`,
+		`[tui]`,
+		`status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit"]`,
+		`terminal_title = ["project", "git-branch", "status", "thread", "task-progress"]`,
 		`[agents]`,
 		`default_subagent_model = "gpt-5.6-luna"`,
 		`default_subagent_reasoning_effort = "medium"`,

@@ -188,6 +188,28 @@ Forge to resume or schedule agents.
 
 ## 0.151.0 configuration adopted by Forge
 
+### Config schema and TUI surfaces
+
+Source owners:
+
+- `codex-rs/core/config.schema.json`
+- `codex-rs/config/src/types.rs`
+- `codex-rs/tui/src/bottom_pane/status_line_setup.rs`
+- `codex-rs/cli/src/doctor/title.rs`
+
+Codex CLI 0.151.0 accepts `[tui].status_line` and
+`[tui].terminal_title` as ordered string lists. Every Forge-selected identifier
+is accepted by the 0.151.0 parsers. Forge writes the canonical status identifier
+`context-used` rather than its accepted legacy alias `context-usage`; the
+requested terminal-title aliases `project`, `status`, and `thread` remain valid
+and normalize internally to `project-name`, `run-state`, and `thread-title`.
+
+The editor schema directive is the first line of every Forge-generated
+`config.toml` and uses the official `.json` URL. The 0.151.0 schema also defines
+`exclude_slash_tmp`, `exclude_tmpdir_env_var`, and `writable_roots` under
+`sandbox_workspace_write`; reinstall preserves these settings when migrating a
+configuration that placed them inside the older Forge marker.
+
 | Capability | Forge decision |
 | --- | --- |
 | Optional MCP startup grace | Leave native default unless a measured startup issue requires configuration |

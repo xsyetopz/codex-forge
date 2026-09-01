@@ -150,6 +150,9 @@ test("matrix contains the exact 17 model-effort cells and 5610 trials", () => {
 
 test("generated config keeps Forge instruction paths absolute and portable", () => {
 	const config = renderConfig();
+	expect(config.split("\n")[0]).toBe(
+		"#:schema https://developers.openai.com/codex/config-schema.json",
+	);
 	expect(config).toContain(
 		'model_instructions_file = "/tmp/codex-home/forge/model-instructions.md"',
 	);
@@ -165,6 +168,8 @@ test("generated config keeps Forge instruction paths absolute and portable", () 
 			"utf8",
 		).trim(),
 	);
+	expect(TOML.parse(config).tui.status_line).toContain("context-used");
+	expect(TOML.parse(config).tui.terminal_title).toContain("task-progress");
 });
 
 test("package builder rejects stale output and source symlinks", () => {

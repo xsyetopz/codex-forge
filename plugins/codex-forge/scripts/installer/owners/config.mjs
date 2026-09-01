@@ -21,6 +21,7 @@ const ROOT_KEYS = new Set([
 ]);
 const TABLE_KEYS = {
 	sandbox_workspace_write: new Set(["network_access"]),
+	tui: new Set(["status_line", "terminal_title"]),
 	agents: new Set([
 		"default_subagent_model",
 		"default_subagent_reasoning_effort",
@@ -39,8 +40,19 @@ const TABLE_KEYS = {
 		"mcp_2026_07_28",
 	]),
 };
+const TABLE_PASSTHROUGH_KEYS = {
+	sandbox_workspace_write: new Set([
+		"exclude_slash_tmp",
+		"exclude_tmpdir_env_var",
+		"writable_roots",
+	]),
+};
 
 const quote = (value) => JSON.stringify(String(value));
+const SCHEMA_DIRECTIVE =
+	"#:schema https://developers.openai.com/codex/config-schema.json";
+const SCHEMA_DIRECTIVE_PATTERN =
+	/^#:schema https:\/\/developers\.openai\.com\/codex\/config-schema\.jso(?:n)?\s*\n?/gm;
 const DEFAULT_MAX_CONCURRENT_THREADS = 8;
 const LEGACY_DEFAULT_MAX_CONCURRENT_THREADS = 3;
 const maxThreadsAssignment = (text) =>
@@ -110,10 +122,17 @@ const CLOSE = "# <<< codex-forge <<<";
 const EXPECTED_SCOPES = new Map([
 	["root", ROOT_KEYS],
 	["sandbox_workspace_write", TABLE_KEYS.sandbox_workspace_write],
+	["tui", TABLE_KEYS.tui],
 	["agents", TABLE_KEYS.agents],
 	["apps._default", TABLE_KEYS["apps._default"]],
 	["features", TABLE_KEYS.features],
 ]);
+const LEGACY_SCOPES_WITHOUT_TUI = new Set(
+	[...EXPECTED_SCOPES.keys()].filter((scope) => scope !== "tui"),
+);
+
+const sameSet = (left, right) =>
+	left.size === right.size && [...left].every((value) => right.has(value));
 
 export function parseManagedConfig(text, { requirePresent = false } = {}) {
 	const lines = text.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [];
@@ -153,15 +172,28 @@ export function parseManagedConfig(text, { requirePresent = false } = {}) {
 			);
 			const expected = EXPECTED_SCOPES.get(scope);
 			if (scope !== "root") keys.delete(scope);
-			if (
-				keys.size !== expected.size ||
-				[...expected].some((key) => !keys.has(key))
-			)
+			const passthrough = TABLE_PASSTHROUGH_KEYS[scope] ?? new Set();
+			const unexpected = [...keys].filter(
+				(key) => !expected.has(key) && !passthrough.has(key),
+			);
+			if ([...expected].some((key) => !keys.has(key)) || unexpected.length)
 				throw new Error(
 					`config.toml Forge scope has an unexpected managed-key signature: ${scope}`,
 				);
 			seen.add(scope);
-			blocks.push({ start: open, end: start + raw.length, scope });
+			const hasPassthrough = [...keys].some((key) => passthrough.has(key));
+			const replacement = hasPassthrough
+				? removeKeys(
+						body.match(/.*(?:\n|$)/g)?.filter(Boolean) ?? [],
+						expected,
+					).join("")
+				: "";
+			blocks.push({
+				start: open,
+				end: start + raw.length,
+				scope,
+				replacement,
+			});
 			open = null;
 		} else if (markerLike) {
 			throw new Error(
@@ -174,7 +206,11 @@ export function parseManagedConfig(text, { requirePresent = false } = {}) {
 		throw new Error("config.toml contains an unmatched Forge open marker");
 	if (requirePresent && blocks.length === 0)
 		throw new Error("config.toml is missing its recorded Forge block");
-	if (blocks.length && seen.size !== EXPECTED_SCOPES.size)
+	if (
+		blocks.length &&
+		!sameSet(seen, new Set(EXPECTED_SCOPES.keys())) &&
+		!sameSet(seen, LEGACY_SCOPES_WITHOUT_TUI)
+	)
 		throw new Error(
 			"config.toml is missing one or more canonical Forge scopes",
 		);
@@ -185,8 +221,13 @@ export function stripManaged(text, options = {}) {
 	const parsed = parseManagedConfig(text, options);
 	let output = text;
 	for (const block of [...parsed.blocks].reverse())
-		output = `${output.slice(0, block.start)}${output.slice(block.end)}`;
+		output = `${output.slice(0, block.start)}${block.replacement}${output.slice(block.end)}`;
 	return output;
+}
+
+function withSchemaDirective(text) {
+	const withoutDirective = text.replace(SCHEMA_DIRECTIVE_PATTERN, "");
+	return `${SCHEMA_DIRECTIVE}\n${withoutDirective.replace(/^\s*\n/, "")}`;
 }
 
 export function resolveMaxConcurrentThreads(text) {
@@ -233,6 +274,10 @@ function fragments(home, pluginRoot, maxConcurrentThreads) {
 	];
 	const tables = {
 		sandbox_workspace_write: ["network_access = true"],
+		tui: [
+			'status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit"]',
+			'terminal_title = ["project", "git-branch", "status", "thread", "task-progress"]',
+		],
 		agents: [
 			'default_subagent_model = "gpt-5.6-luna"',
 			'default_subagent_reasoning_effort = "medium"',
@@ -301,6 +346,7 @@ export function mergeConfig(
 		output += lines.join("");
 	}
 	if (!output.endsWith("\n")) output += "\n";
+	output = withSchemaDirective(output);
 	TOML.parse(output);
 	return [output, createdTables];
 }
