@@ -1,0 +1,5 @@
+[submodule "codex-cli"]
+	path = vendor/codex-cli
+	url = https://github.com/openai/codex.git
+	update = checkout
+	shallow = true
