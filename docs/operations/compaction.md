@@ -69,7 +69,7 @@ assuming additive behavior.
 
 ### Lean Forge model instructions plus a developer layer
 
-Codex Forge 0.1.0-alpha.4 installs the lean 290-word Forge model-instruction layer from
+Codex Forge 0.1.0-alpha.4 installs the lean 315-word Forge model-instruction layer from
 `plugins/codex-forge/assets/model-instructions.md` to
 `$CODEX_HOME/forge/model-instructions.md` and points
 `model_instructions_file` at that exact target. Forge adds its runtime

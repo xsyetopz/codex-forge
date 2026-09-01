@@ -13,19 +13,20 @@ decision for a custom harness, not an accidental compatibility path.
 | Effective model transport | `plugins/codex-forge/assets/model-catalog.json` |
 | Installed selection | managed `model_instructions_file`, `developer_instructions`, and `model_catalog_json` config |
 
-The base file is currently 290 words with a SHA-256 pinned in
+The base file is currently 315 words with a SHA-256 pinned in
 `tests/unit/contracts/documentation.test.mjs`. Its sentence order is Role →
 Goal → Success → Constraints → Tools → Output → Stop, without section labels.
 The user-requirement and stated-order sentence precedes tool execution.
 
 ## Official GPT-5.6 guidance
 
-OpenAI's [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)
-recommends lean prompts, stating each instruction once, exposing only relevant
-tools, keeping product-defining examples/style, defining compact autonomy and
-approval boundaries, and validating prompt changes on representative work. It
-also recommends outcome-focused prompts for hard work: goal, context,
-constraints, evidence, success criteria, and output format.
+OpenAI's [GPT-5.6 prompting guidance](https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6),
+retrieved on September 1, 2026, recommends lean prompts, stating each
+instruction once, exposing only relevant tools, keeping product-defining
+examples and style, defining compact autonomy and approval boundaries, and
+validating prompt changes on representative work. Its response-style guidance
+says to preserve required evidence and next actions, define tone through
+concrete writing choices, and trim generic reassurance before required facts.
 
 Forge applies that guidance by:
 
@@ -34,6 +35,7 @@ Forge applies that guidance by:
 - deleting duplicated generic workflow skills and broad hooks;
 - specifying answer/review/diagnose versus change/build/fix authority once;
 - pinning prompt bytes and testing required ordering;
+- defining execution-failure recovery as an operational task-state update;
 - retaining `!RAW` for explicit wording preservation.
 
 The guidance advises incremental evaluation, not a ban on custom-harness base
@@ -87,6 +89,7 @@ compatibility target for the current role files.
 | Scope invention or overengineering | Goal/Success sentences in base identity |
 | Ignoring stated order | Goal sentence in base identity |
 | Routine narration and social padding | Output sentence in base identity |
+| Social-script substitution during execution-failure recovery | Operational task-state sentence in base identity |
 | Repeated approval requests for safe local work | Single autonomy boundary in developer instructions |
 | Wrong model for ambiguous work | Role-routing paragraph and role TOML |
 | Mandatory review/repair loop | Removed from hooks; optional task topology only |

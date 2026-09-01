@@ -49,9 +49,9 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 	);
 	const words = modelInstructions.trim().split(/\s+/).length;
 	const digest = createHash("sha256").update(modelInstructions).digest("hex");
-	expect(words).toBe(290);
+	expect(words).toBe(315);
 	expect(digest).toBe(
-		"3ed2a357d3c1da3452066959bf8670a42b24811525884937c6e0cd2cdd74fd4c",
+		"89ebdc499987c6c239b6d150f0af1784a849b451b2daa4b34d226838a55a7883",
 	);
 	for (const text of [modelInstructions, developerInstructions])
 		for (const negative of [
@@ -63,6 +63,9 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 		])
 			expect(text).not.toMatch(negative);
 	expect(modelInstructions).toContain("!RAW");
+	expect(modelInstructions).toContain(
+		"When reporting or correcting an execution failure, use an operational task-state update centered on observed state, material impact, containment evidence, and any required user action.",
+	);
 	expect(modelInstructions.indexOf("Honor exact requirements")).toBeLessThan(
 		modelInstructions.indexOf(
 			"produce precise, safe outcomes through harness tools",
@@ -338,7 +341,7 @@ test("README installation and validation commands match distributed entrypoints"
 	expect(readme).toContain("docs/evidence/model-instructions.md");
 	expect(readme).toContain("AGENTS.md");
 	expect(readme).toContain("CONTRIBUTING.md");
-	expect(readme).toContain("290-word");
+	expect(readme).toContain("315-word");
 	expect(readme).not.toContain("283-word");
 	expect(readme).not.toContain("359-word");
 	expect(read(join(ROOT, "AGENTS.md"))).toContain(

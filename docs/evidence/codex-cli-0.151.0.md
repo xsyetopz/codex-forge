@@ -61,6 +61,36 @@ a product Stop hook is an active workflow-control surface, not passive cleanup.
 Forge 0.151.0 uses no Stop hook and never matches native close, interrupt, wait,
 or send-input tools.
 
+### Operational-recovery feasibility
+
+The September 1, 2026 operational-recovery review checked whether Forge could
+enforce factual recovery reporting without changing Codex source.
+
+| Surface | What 0.151.0 permits | Boundary for Forge |
+| --- | --- | --- |
+| `model_instructions_file` | Replaces base instructions for the configured model transport | Correct owner for default response behavior; model adherence remains observational |
+| `AGENTS.md` / developer instructions | Adds project or harness context through separate injected layers | Useful for scoped workflows, but duplicating the base rule would create prompt conflict and repetition |
+| Skills | Adds selectively loaded task instructions and resources | Appropriate for distinct reusable workflows, not a cross-cutting correction to default execution-failure reporting |
+| `PreToolUse` | Inspects a pending supported tool call and can deny or replace its input | Can enforce syntactic command policy; it cannot establish from arguments alone that the model verified an application's CLI contract |
+| `PostToolUse` | Inspects an executed tool response and can block continuation or add feedback | Cannot undo the side effect or replace ordinary tool output through command-hook JSON |
+| `Stop` | Receives `last_assistant_message`; a controlling handler can block completion and return a continuation prompt | Can request a rewrite, but cannot replace the assistant message directly. Completion blocking re-enters the model loop and can override current user intent, the failure Forge previously removed |
+| `notify` | Observes the completed turn and final assistant text | Post-turn observation only |
+| Extension MCP result contributor | Receives a mutable MCP result before client/model delivery | Compiled extension surface for MCP results, not a plugin command hook or a general assistant-message interceptor |
+| App-server client | Receives protocol events and chooses its own presentation | A replacement client could filter display, but cannot mutate the normal CLI assistant item through a documented request |
+
+`StopCommandInput` includes `stop_hook_active` so a handler can distinguish a
+continuation attempt, but that supports loop management rather than safe
+semantic classification. A social-language detector would still need to
+distinguish an operational recovery response from requested quotation,
+analysis, or creative writing. A false positive would block completion and
+inject more work after the user had already supplied direction.
+
+Forge therefore uses the base Output contract plus an opt-in live response
+evaluation. It adds no Stop hook, generic CLI-verification hook, or assistant
+text filter. Exact command families with deterministic authorization risk
+remain eligible for `forge.rules` or focused `PreToolUse` controls when a
+separate measured failure establishes the matcher and oracle.
+
 Plugin hooks are hash-trusted through the TUI review surface. Installation or a
 hook command change still requires a fresh session and manual `/hooks` review.
 

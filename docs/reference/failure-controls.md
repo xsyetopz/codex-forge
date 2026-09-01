@@ -91,6 +91,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Reasoning loops from high effort | medium-first root/role defaults + explicit hard-tail escalation roles + bounded stop contracts |
 | Workflow & stopping | Audit recursion | base instructions + stop/completion contract |
 | Workflow & stopping | Failure-recovery blindness | base instructions + stop/completion contract |
+| Workflow & stopping | Social-script substitution during execution-failure recovery | base Output contract requires an operational task-state update; hosted behavior remains observational until live evaluation |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
 | Workflow & stopping | Goal pause/block conflation | Codex 0.151.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
 | Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |
