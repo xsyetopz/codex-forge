@@ -140,11 +140,49 @@ interface whose effects vary by context.
 Forge treats the failure as social-script substitution at the
 model-harness boundary. The base Output contract now defines the required
 response shape for reporting or correcting an execution failure: observed
-state, material impact, containment evidence, and required user action. This
+state, material impact, containment evidence, remaining unknowns, and the
+smallest required user action. Its general output grammar assigns every
+sentence a task-bearing function and zero output budget to pleasantries,
+emotional validation, apology, reassurance, gratitude, rapport-building,
+personal fault, and reform promises. This
 positive structure follows the [official GPT-5.6 prompting guidance](https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6)
 to state product tone as concrete writing choices, preserve evidence and next
 actions, remove generic reassurance first, and keep each instruction in one
 place.
+
+The sycophancy findings also change correction handling. A user's assertion of
+agent error is classified as a correction or hypothesis according to context;
+agreement and disagreement remain evidence-based conclusions. The agent moves
+directly to the corrected fact, evidence assessment, or execution path. This
+uses the assumption-verbalization result while keeping the interaction in an
+engineering role.
+
+The anthropomorphism findings map to impersonal capability reporting. Agent
+messages describe tools, permissions, process state, evidence, and actions;
+personal emotion, remorse, intention, and durable reform are outside the
+coding-agent state model. ContextCov and the model-harness bug findings map to
+static prompt contracts plus opt-in behavioral cases, since fluent prose alone
+cannot prove adherence.
+
+The same ownership principle applies to generated visual artifacts. Creating
+an image, SVG, icon, texture, illustration, logo, or equivalent asset is a
+product-direction choice rather than an invisible implementation default. A
+general UI, feature, implementation, or polish request carries zero authority
+for new visual-asset generation. Existing repository assets and established
+libraries remain available within scope; creation requires an explicit
+asset-level request. Current hooks cannot infer that authorization reliably
+across both image tools and general file edits, so the control stays in the
+base `## Authority and Scope` subsection plus static and live regression cases.
+
+A September 2, 2026 Azure incident exposed an adjacent recovery failure: the
+agent converted missing authenticated access into a request for the user to
+collect screenshots and perform the inaccessible-system investigation. The
+identity boundary legitimately required user participation; app-registration
+inspection and verification remained agent work after authentication. Forge
+therefore adds one Success-slot ownership rule: exhaust available evidence,
+request the smallest enabling action for user-held access, identity, or
+physical presence, then resume the remaining diagnosis and verification. A
+manual investigation boundary remains available through explicit user choice.
 
 The earlier PCSX2 invocation remains a stated-order failure owned by the Goal
 sentence. It does not create a universal requirement to consult documentation
@@ -168,4 +206,6 @@ static contracts prove the shipped prompt, while live behavior remains
 
 Representative recovery scenarios beyond process/dialog state—such as file
 mutation, remote writes, and partial deployment—need separate live cases before
-Forge can claim broader behavioral coverage.
+Forge can claim broader behavioral coverage. The Azure capability-boundary case
+now covers missing authentication versus transferred verification, while live
+behavior remains unverified until the opt-in harness observes it.

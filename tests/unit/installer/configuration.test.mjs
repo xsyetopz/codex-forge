@@ -400,7 +400,7 @@ describe("installer lifecycle", () => {
 		writeFileSync(target, "local override\n");
 		const cache = join(home, "plugins", "cache", "codex-forge", "codex-forge");
 		const stale = join(cache, "0.1.0-alpha.1");
-		const current = join(cache, "0.1.0-alpha.4");
+		const current = join(cache, "0.1.0-alpha.5");
 		mkdirSync(stale, { recursive: true });
 		mkdirSync(current);
 		expect(
@@ -455,50 +455,50 @@ describe("installer lifecycle", () => {
 			"cross-process cache ownership is UNVERIFIED",
 		);
 	});
-	test("records an alpha.3-session to alpha.4 upgrade as unverified cache retention", () => {
+	test("records an alpha.4-session to alpha.5 upgrade as unverified cache retention", () => {
 		const { home } = fixture();
-		// Seed the persisted state boundary from the alpha.3 release without
-		// changing the checked-out alpha.4 source under test. This exercises the
+		// Seed the persisted state boundary from the alpha.4 release without
+		// changing the checked-out alpha.5 source under test. This exercises the
 		// supported installer upgrade path; the retained cache root below is only
 		// a fixture for the upstream behavior Forge cannot verify.
 		install(home, "install", "--no-tools");
 		const statePath = join(home, "forge", "install-state.json");
 		const priorState = JSON.parse(readFileSync(statePath, "utf8"));
-		priorState.plugin_version = "0.1.0-alpha.3";
+		priorState.plugin_version = "0.1.0-alpha.4";
 		writeFileSync(statePath, `${JSON.stringify(priorState, null, 2)}\n`);
 		const beforeUpgrade = JSON.parse(
 			install(home, "doctor", "--json").stdout.toString(),
 		);
-		expect(beforeUpgrade.installed_version).toBe("0.1.0-alpha.3");
+		expect(beforeUpgrade.installed_version).toBe("0.1.0-alpha.4");
 		expect(beforeUpgrade.upgrade_available).toBe(true);
-		const alpha3 = join(
+		const alpha4 = join(
 			home,
 			"plugins",
 			"cache",
 			"codex-forge",
 			"codex-forge",
-			"0.1.0-alpha.3",
+			"0.1.0-alpha.4",
 		);
 		// Upstream cache retention is intentionally UNVERIFIED, not a live-session proof.
-		mkdirSync(alpha3, { recursive: true });
+		mkdirSync(alpha4, { recursive: true });
 		const result = runInstaller(
 			home,
 			["install", "--no-tools", "--purge-cache"],
 			{
-				CODEX_SESSION_ID: "alpha3-session",
-				CODEX_THREAD_ID: "alpha3-thread",
+				CODEX_SESSION_ID: "alpha4-session",
+				CODEX_THREAD_ID: "alpha4-thread",
 			},
 		);
 		expect(result.exitCode).toBe(0);
 		const state = JSON.parse(
 			readFileSync(join(home, "forge", "install-state.json"), "utf8"),
 		);
-		expect(state.plugin_version).toBe("0.1.0-alpha.4");
-		expect(existsSync(alpha3)).toBe(true);
+		expect(state.plugin_version).toBe("0.1.0-alpha.5");
+		expect(existsSync(alpha4)).toBe(true);
 		const report = JSON.parse(
 			install(home, "doctor", "--json").stdout.toString(),
 		);
-		expect(report.cache_versions).toContain("0.1.0-alpha.3");
+		expect(report.cache_versions).toContain("0.1.0-alpha.4");
 		expect(report.cache_retention.status).toBe("UNVERIFIED");
 	});
 });

@@ -14,6 +14,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Authority & scope | Unauthorized environment mutation | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
 | Authority & scope | Destructive-operation overreach | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
 | Authority & scope | Compatibility invention | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
+| Authority & scope | Unsolicited image, SVG, icon, texture, logo, or other visual-asset creation | base Constraints contract requires explicit asset-level user authorization; live behavior remains observational because current hook payloads lack a reliable user-intent oracle for apply-patch and image-generation calls |
 | Authority & scope | Negative-condition inversion | base authority rules + approval boundary for authorizable actions + Forge hard-deny enforcement for dangerous actions |
 | Interpretation & assumptions | Silent assumption filling | base evidence/assumption rules + compact state preservation |
 | Interpretation & assumptions | Intent invention | base evidence/assumption rules + compact state preservation |
@@ -92,6 +93,9 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Audit recursion | base instructions + stop/completion contract |
 | Workflow & stopping | Failure-recovery blindness | base instructions + stop/completion contract |
 | Workflow & stopping | Social-script substitution during execution-failure recovery | base Output contract requires an operational task-state update; hosted behavior remains observational until live evaluation |
+| Workflow & stopping | Pleasantry or emotional-validation preamble replaces task state | base Output grammar assigns every sentence a task-bearing function and zero output budget to social language; hosted behavior remains observational until live evaluation |
+| Workflow & stopping | Unsupported agreement with user correction | base Goal contract classifies user statements and makes agreement or disagreement an evidence-based conclusion |
+| Workflow & stopping | Missing capability becomes user-owned investigation or verification | base Success contract retains agent ownership, requests the smallest user-held enabling action, and resumes the remaining work; hosted behavior remains observational until live evaluation |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
 | Workflow & stopping | Goal pause/block conflation | Codex 0.152.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
 | Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |

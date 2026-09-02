@@ -32,9 +32,11 @@ When changing `model-instructions.md`:
 
 1. Keep positive phrasing. The contract test rejects `do not`, `never`, `not`,
    and similar constructions.
-2. Keep the GPT-5.6 section order (Role, Goal, Success, Constraints, Tools,
-   Output, Stop). Do not add section labels. Keep user requirements and stated
-   order before “produce outcomes through the tools”.
+2. Keep the official Markdown hierarchy: `# Identity`, `# Instructions` with
+   focused subsections, measured-gap `# Examples`, then `# Context`. Within
+   Instructions preserve Task Contract, Authority and Scope, Evidence, Success
+   and Ownership, Tools and Validation, Communication, and Stop order. Keep
+   user requirements and stated order before tool execution.
 3. State each rule once. Do not widen a single observed failure into a policy
    that covers unrelated CLI, flag, or tool-use cases.
 4. Update the pinned word count and SHA-256 in

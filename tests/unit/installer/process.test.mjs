@@ -392,7 +392,7 @@ describe("installer lifecycle", () => {
 		const state = JSON.parse(
 			readFileSync(join(home, "forge", "install-state.json"), "utf8"),
 		);
-		expect(state.plugin_version).toBe("0.1.0-alpha.4");
+		expect(state.plugin_version).toBe("0.1.0-alpha.5");
 		expect(state.file_mappings).toHaveLength(13);
 		expect(
 			state.file_mappings.some(

@@ -10,7 +10,7 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	);
 	const hooks = JSON.parse(read(join(PLUGIN, "hooks", "hooks.json")));
 	const mcp = JSON.parse(read(join(PLUGIN, ".mcp.json")));
-	expect(manifest.version).toBe("0.1.0-alpha.4");
+	expect(manifest.version).toBe("0.1.0-alpha.5");
 	expect(manifest.mcpServers).toBe("./.mcp.json");
 	expect(existsSync(join(PLUGIN, "hooks.json"))).toBe(false);
 	expect(Object.keys(hooks.hooks).sort()).toEqual([
@@ -110,6 +110,6 @@ test("package and plugin metadata share the current release version", () => {
 	const pluginManifest = JSON.parse(
 		read(join(PLUGIN, ".codex-plugin", "plugin.json")),
 	);
-	expect(packageMetadata.version).toBe("0.1.0-alpha.4");
+	expect(packageMetadata.version).toBe("0.1.0-alpha.5");
 	expect(pluginManifest.version).toBe(packageMetadata.version);
 });

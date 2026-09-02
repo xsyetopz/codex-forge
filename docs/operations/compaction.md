@@ -1,6 +1,6 @@
 # Context compaction
 
-This document records the observed continuity failure, its causal mechanism in Codex CLI 0.149.1, and why Codex Forge 0.1.0-alpha.4 uses standard summarizing compaction instead of token-budget context resets. It is documentation only and isn't injected into agent turns.
+This document records the observed continuity failure, its causal mechanism in Codex CLI 0.149.1, and why Codex Forge 0.1.0-alpha.5 uses standard summarizing compaction instead of token-budget context resets. It is documentation only and isn't injected into agent turns.
 
 ## Observed incident
 
@@ -76,7 +76,7 @@ assuming additive behavior.
 
 ### Lean Forge model instructions plus a developer layer
 
-Codex Forge 0.1.0-alpha.4 installs the lean 315-word Forge model-instruction layer from
+Codex Forge 0.1.0-alpha.5 installs the pinned Forge model-instruction layer from
 `plugins/codex-forge/assets/model-instructions.md` to
 `$CODEX_HOME/forge/model-instructions.md` and points
 `model_instructions_file` at that exact target. Forge adds its runtime
@@ -85,7 +85,7 @@ through `developer_instructions`. Local/custom-provider compaction uses the chec
 
 ## Current configuration boundaries
 
-| 0.1.0-alpha.4 state | Reason |
+| 0.1.0-alpha.5 state | Reason |
 | --- | --- |
 | Summary-backed rather than token-budget compaction | `features.token_budget = false` overrides model-catalog defaults. Hosted models use Codex remote compaction; local/custom providers use the local summary path. |
 | Local/custom-provider execution checkpoint | `assets/compact-prompt.md` records request mode, objective, exact decisions, worktree state, validation, Forge/CodeGraph evidence, child handoffs, blockers, and the next action when the local branch is selected. |
@@ -137,7 +137,7 @@ The acceptance boundary remains unchanged: Forge explicitly disables `features.t
 
 ## Validation performed
 
-- Repository contract, installer, schema, and skill validation cover the alpha.4 configuration and distributed assets.
+- Repository contract, installer, schema, and skill validation cover the alpha.5 configuration and distributed assets.
 - Hook/plugin schemas and all seven skill packages validated.
 - A local Forge reinstall set `features.token_budget = false` in the effective configuration.
 - `bun install.mjs doctor --json` reported the installation healthy and current.

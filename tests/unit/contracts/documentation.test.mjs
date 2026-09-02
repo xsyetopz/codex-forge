@@ -49,9 +49,9 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 	);
 	const words = modelInstructions.trim().split(/\s+/).length;
 	const digest = createHash("sha256").update(modelInstructions).digest("hex");
-	expect(words).toBe(315);
+	expect(words).toBe(832);
 	expect(digest).toBe(
-		"89ebdc499987c6c239b6d150f0af1784a849b451b2daa4b34d226838a55a7883",
+		"8ab90d036e018644108a89ed44625b7d1644a9cc026971255e2acda4b3d8b930",
 	);
 	for (const text of [modelInstructions, developerInstructions])
 		for (const negative of [
@@ -64,13 +64,56 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 			expect(text).not.toMatch(negative);
 	expect(modelInstructions).toContain("!RAW");
 	expect(modelInstructions).toContain(
-		"When reporting or correcting an execution failure, use an operational task-state update centered on observed state, material impact, containment evidence, and any required user action.",
+		"When reporting or correcting an execution failure, provide an operational task-state update covering observed state, material impact, containment evidence, remaining unknowns, and the smallest required user action.",
 	);
+	expect(modelInstructions).toContain(
+		"When progress depends on user-held access, identity, secret, physical presence, authority, or unavailable capability, exhaust available evidence, request the smallest enabling action, then resume and complete the remaining work.",
+	);
+	expect(modelInstructions).toContain(
+		"Assign zero output budget to pleasantries, emotional validation, praise, apology, reassurance, gratitude, rapport-building, personal fault, and reform promises.",
+	);
+	expect(modelInstructions).toContain(
+		"Verify factual claims independently; agreement and disagreement are evidence-based conclusions.",
+	);
+	expect(modelInstructions).toContain(
+		"Creating or generating images, SVGs, icons, textures, illustrations, logos, or other visual assets requires an explicit user request for that asset.",
+	);
+	expect(
+		[...modelInstructions.matchAll(/^(#{1,2}) (.+)$/gm)].map(
+			([, level, title]) => `${level} ${title}`,
+		),
+	).toEqual([
+		"# Identity",
+		"# Instructions",
+		"## Task Contract",
+		"## Authority and Scope",
+		"## Evidence",
+		"## Success and Ownership",
+		"## Tools and Validation",
+		"## Communication",
+		"## Stop",
+		"# Examples",
+		"## Evidence-Based Correction",
+		"## User-Held Access",
+		"## Visual-Asset Authorization",
+		"# Context",
+	]);
 	expect(modelInstructions.indexOf("Honor exact requirements")).toBeLessThan(
 		modelInstructions.indexOf(
-			"produce precise, safe outcomes through harness tools",
+			"Produce precise, safe outcomes through harness tools",
 		),
 	);
+	for (const [earlier, later] of [
+		["## Task Contract", "## Authority and Scope"],
+		["## Authority and Scope", "## Evidence"],
+		["## Evidence", "## Success and Ownership"],
+		["## Success and Ownership", "## Tools and Validation"],
+		["## Tools and Validation", "## Communication"],
+		["## Communication", "## Stop"],
+	])
+		expect(modelInstructions.indexOf(earlier)).toBeLessThan(
+			modelInstructions.indexOf(later),
+		);
 });
 
 test("README installation and validation commands match distributed entrypoints", () => {
@@ -260,12 +303,12 @@ test("README installation and validation commands match distributed entrypoints"
 			"cache",
 			"codex-forge-marketplace",
 			"codex-forge",
-			"0.1.0-alpha.4",
+			"0.1.0-alpha.5",
 		);
 		mkdirSync(join(resolverHome, "forge"), { recursive: true });
 		writeFileSync(
 			join(resolverHome, "forge", "install-state.json"),
-			JSON.stringify({ plugin_version: "0.1.0-alpha.4" }),
+			JSON.stringify({ plugin_version: "0.1.0-alpha.5" }),
 		);
 		mkdirSync(join(installedRoot, "skills", "forge-setup", "references"), {
 			recursive: true,
@@ -299,7 +342,7 @@ test("README installation and validation commands match distributed entrypoints"
 		writeFileSync(join(installedRoot, "scripts", "install.mjs"), "fixture");
 		writeFileSync(
 			join(installedRoot, ".codex-plugin", "plugin.json"),
-			JSON.stringify({ version: "0.1.0-alpha.4" }),
+			JSON.stringify({ version: "0.1.0-alpha.5" }),
 		);
 		const resolved = spawnSync(
 			"sh",
@@ -318,7 +361,7 @@ test("README installation and validation commands match distributed entrypoints"
 			"cache",
 			"second-marketplace",
 			"codex-forge",
-			"0.1.0-alpha.4",
+			"0.1.0-alpha.5",
 		);
 		mkdirSync(join(ambiguousRoot, "skills", "forge-setup", "references"), {
 			recursive: true,
@@ -338,7 +381,7 @@ test("README installation and validation commands match distributed entrypoints"
 		writeFileSync(join(ambiguousRoot, "scripts", "install.mjs"), "fixture");
 		writeFileSync(
 			join(ambiguousRoot, ".codex-plugin", "plugin.json"),
-			JSON.stringify({ version: "0.1.0-alpha.4" }),
+			JSON.stringify({ version: "0.1.0-alpha.5" }),
 		);
 		const ambiguous = spawnSync(
 			"sh",
@@ -356,7 +399,7 @@ test("README installation and validation commands match distributed entrypoints"
 	expect(readme).toContain("docs/evidence/model-instructions.md");
 	expect(readme).toContain("AGENTS.md");
 	expect(readme).toContain("CONTRIBUTING.md");
-	expect(readme).toContain("315-word");
+	expect(readme).toContain("832-word");
 	expect(readme).not.toContain("283-word");
 	expect(readme).not.toContain("359-word");
 	expect(read(join(ROOT, "AGENTS.md"))).toContain(

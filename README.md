@@ -74,10 +74,11 @@ review, research, or skill-authoring workflows.
 
 ### Model instructions
 
-Forge installs a lean 315-word replacement at
+Forge installs a pinned 832-word replacement at
 `$CODEX_HOME/forge/model-instructions.md` and selects it with
-`model_instructions_file`. Its sentence order follows GPT-5.6 guidance: Role →
-Goal → Success → Constraints → Tools → Output → Stop. Forge intentionally
+`model_instructions_file`. It uses the official prompt-engineering Markdown
+hierarchy: Identity, Instructions with focused subsections, measured-gap
+Examples, then Context. Forge intentionally
 overrides Codex's stock `default.md`; additive developer instructions cannot
 remove stock identity clauses.
 

@@ -549,7 +549,7 @@ describe("installer sequencing", () => {
 			writeFileSync(join(checkout, "install.mjs"), "#!/usr/bin/env bun\n");
 			writeFileSync(
 				join(checkout, "package.json"),
-				JSON.stringify({ name: "codex-forge", version: "0.1.0-alpha.4" }),
+				JSON.stringify({ name: "codex-forge", version: "0.1.0-alpha.5" }),
 			);
 			const manifest = join(plugin, "plugin.json");
 			if (kind === "malformed") writeFileSync(manifest, "not json");
@@ -562,7 +562,7 @@ describe("installer sequencing", () => {
 				const outside = join(root, "manifest.json");
 				writeFileSync(
 					outside,
-					JSON.stringify({ name: "codex-forge", version: "0.1.0-alpha.4" }),
+					JSON.stringify({ name: "codex-forge", version: "0.1.0-alpha.5" }),
 				);
 				symlinkSync(outside, manifest);
 			}

@@ -25,10 +25,12 @@ instruction-layer edits.
 
 - `plugins/codex-forge/assets/model-instructions.md` is the replace identity
   (`model_instructions_file`). Positive phrasing only. Word count and SHA-256
-  are pinned in `tests/unit/contracts/documentation.test.mjs`. Sentence order is
-  GPT-5.6 Role → Goal → Success → Constraints → Tools → Output → Stop, without
-  section labels. The user-requirement / stated-order sentence precedes
-  “produce outcomes through the tools”.
+  are pinned in `tests/unit/contracts/documentation.test.mjs`. Markdown follows
+  the official prompt-engineering structure: `# Identity`, `# Instructions`
+  with focused subsections, measured-gap `# Examples`, then `# Context`.
+  Instruction subsections preserve Task Contract → Authority and Scope →
+  Evidence → Success and Ownership → Tools and Validation → Communication →
+  Stop. The user-requirement / stated-order rule precedes tool execution.
 - `plugins/codex-forge/assets/developer-instructions.txt` owns root delegation,
   role routing, and review policy. Same ban on negative constructions. Role
   TOMLs own child differentiation and replace the root developer layer for the
