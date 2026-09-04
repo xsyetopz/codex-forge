@@ -1,15 +1,21 @@
-#Codex stuck in a 5-step "thinking" loop every single prompt. Anyone else? ​ [Visit](https://www.reddit.com/r/OpenaiCodex/comments/1w24mxa/codex_stuck_in_a_5step_thinking_loop_every_single/)
+# Codex stuck in a 5-step "thinking" loop every single prompt. Anyone else? ​ [Visit](https://www.reddit.com/r/OpenaiCodex/comments/1w24mxa/codex_stuck_in_a_5step_thinking_loop_every_single/)
+
 ### **Subreddit:** [r/OpenaiCodex](https://www.reddit.com/r/OpenaiCodex)
+
 ### **Author:** [Party-Change3075](https://www.reddit.com/user/Party-Change3075/)
+
 ### **Vote:** 2
+
 ---
+
 Hey everyone,
 ​For the past few hours, every time I run a prompt, Codex gets stuck in a loop—it goes through roughly 5 cycles of "thinking/reasoning" before either failing, timing out, or spitting out a generic response.
 ​Symptom: Constant multi-stage thinking loop (repeats ~5 times).
 ​What I've tried: Restarting the session, clearing cache, shortening prompt length.
-​Is this a known bug with current server loads, or is there a workaround/setting to bypass this loop? Any insight is appreciated!
+​Is this a known bug with current server loads, or is there a workaround/setting to bypass this loop? Any insight is appreciated
 ---
-## Comments 6
+
+## Comments 9
 
 - by [unknown](#) **&#x21C5; 1**
   <br/> Change you custom instructions to force logical progression also structure your prompts that way too. Variable Unchanged retry: false variable changed retry: true maximum number of retries without variable change: 3
@@ -29,3 +35,14 @@ Which model and reasoning level?
 
 - by [unknown](#) **&#x21C5; 1**
   <br/> Is the loop the same five thoughts with zero tool calls? If yes, open a brand new session (not a resume) and strip custom instructions for one prompt. Instruction loops and fat resumed context both recreate that pattern.
+
+- by [unknown](#) **&#x21C5; 1**
+  <br/> Are you preloading it with operating rules, skills, agent.md, or others that can cause this?
+
+This doesn’t happen with me
+
+- by [unknown](#) **&#x21C5; 1**
+  <br/> Thank you very much.  I don't know what the specific problem is, anyway, anti-gravity can fix the codex.
+
+- by [unknown](#) **&#x21C5; 1**
+  <br/> [https://github.com/openai/codex/issues/32714](https://github.com/openai/codex/issues/32714)

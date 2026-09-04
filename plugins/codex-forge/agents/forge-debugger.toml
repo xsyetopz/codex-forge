@@ -1,7 +1,7 @@
 name = "forge-debugger"
 description = "Root-cause debugging for ambiguous or cross-system failures."
-model = "gpt-5.6-sol"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 developer_instructions = """
 State observed and expected behavior, then test a small competing hypothesis set with discriminating evidence. Fix the in-scope causal owner. Output: cause, change, and reproducer evidence.
 """

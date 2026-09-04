@@ -1,21 +1,27 @@
-#How I’ve been making my Codex limits last much longer with Sol + Luna [Visit](https://www.reddit.com/r/OpenaiCodex/comments/1w2aa7y/how_ive_been_making_my_codex_limits_last_much/)
+# How I’ve been making my Codex limits last much longer with Sol + Luna [Visit](https://www.reddit.com/r/OpenaiCodex/comments/1w2aa7y/how_ive_been_making_my_codex_limits_last_much/)
+
 ### **Subreddit:** [r/OpenaiCodex](https://www.reddit.com/r/OpenaiCodex)
+
 ### **Author:** [IaryBreko](https://www.reddit.com/user/IaryBreko/)
-### **Vote:** 21
+
+### **Vote:** 45
+
 ---
+
 I was burning through my Codex limits using Sol Medium/High for pretty much everything.
 Recently I switched to using Sol mainly for planning/review and Luna for most of the actual implementation, with Terra only as a fallback for harder tasks.
 The biggest thing that helped was forcing Sol to give Luna small, clear, self-contained tasks instead of broad instructions. It’s been noticeably better for both usage and consistency.
 I put the setup here if anyone wants to try it or improve it:
 [https://github.com/breko861-hash/sol-luna-codex-orchestrator](https://github.com/breko861-hash/sol-luna-codex-orchestrator)
-Curious if anyone else is doing something similar.
+Curious if anyone else is doing something similar
 ---
-## Comments 31
 
-- by [unknown](#) **&#x21C5; 4**
+## Comments 35
+
+- by [unknown](#) **&#x21C5; 7**
   <br/> I’m doing basically the same (sol high for orchestration, luna xhigh for implementation and sol xhigh for review) through OhMyPi and it works well, but my Pro 100 plan is still not enough for the whole week while before (one month ago) I had plenty left every week always using sol xhigh
 
-- by [unknown](#) **&#x21C5; 8**
+- by [unknown](#) **&#x21C5; 11**
   <br/> I tried to have Luna implement via subagent when Sol was making the plan.Total bust for me... Using fictive numbers for the sake of explaining :
 
 - Asking Sol to implement feature A, he would just do everything. In 30min, job done and 10% of my weekly was gone. Check the work, everything is perfect !vs- Asking Sol to plan the feature A, then asking to just coordinate LUNA as a subagent to do the coding. In 2h, job was done, totally crap and 10% of my weekly was gone. Then Asking SOL again to rework everything. Another 5% gone and everything was perfect !
@@ -51,8 +57,19 @@ Also for all these one shot html/react uis, it’s goddamn retarded when it come
 - by [unknown](#) **&#x21C5; 1**
   <br/> Lol that’s so true! The orchestrating workflow was just causingdouble or extra usage. Can u share what way u found that works better?? 🥺
 
+- by [unknown](#) **&#x21C5; 1**
+  <br/> I've had the same experience. So I use Sol for design and implementation, and Luna for running what Sol has built and collecting test results and benchmarking.
+
+Then pass the results back to Sol for analysis and design refinement.
+
 - by [unknown](#) **&#x21C5; 2**
-  <br/> Uso o Fable 5 ou Sol 5.6 para orquestrar e o Lua Extra alto para executar (Há rumores de que no Alto já é mais que suficiente e no extra alto pode até prejudicar o desempenho, vou testar ainda). Depois que passei a trabalhar dessa forma meus créditos estão durando muito mais. Tarefas que o Sol usaria 80% dos créditos de 5 horas, o Lua faz o mesmo trabalho por 3%, porém, as instruções para o Lua precisam estar extremamente bem definidas e desenhadas, pois as decisões do Lua são péssimas quando um obstáculo surge.
+  <br/> Idk how you are using sol as an orchestrator everytime I used Luna to execute Sol plan. It has to get the context and all the stuff seems like it was doing twice the job which make it super slow. So i often plan on high and execute on medium.
+
+- by [unknown](#) **&#x21C5; 1**
+  <br/> That’s exactly why I’m having Sol break the work into small self-contained packages rather than passing the whole plan/context to Luna. Luna only gets the context it actually needs for that specific task, implements it and reports back. Sol keeps the overall context and reviews/integrates the result. So Luna isn’t redoing Sol’s job or rereading the whole codebase every time.
+
+- by [unknown](#) **&#x21C5; 2**
+  <br/> Luna max is underrated people really dont know how great the model is.If you use sol for a task that luna can basically do then you just wasting tokensAnd sol will always over engineer tasks and break stuff more than lunaLuna can basically do everything sol is a debugger
 
 - by [unknown](#) **&#x21C5; 1**
   <br/> Are you on Plus? If so, does it last you a month with the way you are describing? I am currently on OpenCode Go and have a very similar workflow to yours but am kinda getting tired of flipping through those models. So I was thinking to upgrade to something more reliable and now I am kinda torn between Codex and Cursor, not sure which to pick.
@@ -69,12 +86,8 @@ Also for all these one shot html/react uis, it’s goddamn retarded when it come
   <br/> I use SOL for planning and review and I have grok in cursor do all of the implementation. It works surprisingly well . I gave Sol the choice of working with Grok 4.6 or Luna and SOL chose Grok 4.6.
 
 - by [unknown](#) **&#x21C5; 1**
-  <br/> Idk how you are using sol as an orchestrator everytime I used Luna to execute Sol plan. It has to get the context and all the stuff seems like it was doing twice the job which make it super slow. So i often plan on high and execute on medium.
-
-- by [unknown](#) **&#x21C5; 1**
   <br/> Hi , saw your repo , luna on max works much better than luna on high , with almost no cost increase.
 
- 
        [](https://preview.redd.it/how-ive-been-making-my-codex-limits-last-much-longer-with-v0-uw499mq6ogmh1.png?width=1088&format=png&auto=webp&s=07d4b719a28bd5679a07a107b655d322dae3ecf5)
 
 - by [unknown](#) **&#x21C5; 3**
@@ -110,6 +123,9 @@ I want the model to be able to accurately implement it.
 I use Sol / Terra to write the plans / devil's advocate my own written plans / prompts .
 
 So i feel like it shuoldnt be an issue
+
+- by [unknown](#) **&#x21C5; 1**
+  <br/> Uso o Fable 5 ou Sol 5.6 para orquestrar e o Lua Extra alto para executar (Há rumores de que no Alto já é mais que suficiente e no extra alto pode até prejudicar o desempenho, vou testar ainda). Depois que passei a trabalhar dessa forma meus créditos estão durando muito mais. Tarefas que o Sol usaria 80% dos créditos de 5 horas, o Lua faz o mesmo trabalho por 3%, porém, as instruções para o Lua precisam estar extremamente bem definidas e desenhadas, pois as decisões do Lua são péssimas quando um obstáculo surge.
 
 - by [unknown](#) **&#x21C5; 0**
   <br/> But if sol will do detailed plan....just let sol do it all.

@@ -39,11 +39,11 @@ The custom compact prompt was not the cause of this incident: token-budget compa
 
 ### Standard summarizing compaction
 
-Forge explicitly sets `features.token_budget = false` so Codex uses summary-producing compaction instead of a fresh token-budget context reset. This explicit value is required on Codex CLI 0.152.0 because model-catalog metadata can enable token budgeting when the user configuration is silent.
+Forge explicitly sets `features.token_budget = false` so Codex uses summary-producing compaction instead of a fresh token-budget context reset. Codex CLI 0.153.1 still exposes this under-development feature separately from its disabled-by-default experimental context-management mode. This setting does not disable stable Goal mode or the optional token budget stored on a Goal.
 
 On OpenAI-hosted and Azure-hosted models, Codex selects remote compaction. The local `compact_prompt` / `experimental_compact_prompt_file` override is consumed by the local/custom-provider branch, not by the hosted remote-compaction branch. Forge therefore treats its custom compact prompt as a local-provider fallback and documented handoff specification, not as the continuity guarantee for normal hosted Codex sessions. Hosted continuity instead relies on Codex's remote compaction plus Forge's independently persisted orchestration handoffs and deterministic lifecycle recovery.
 
-Codex CLI 0.152.0 V1 children clone the parent-effective compact prompt. Their
+Codex CLI 0.153.1 retains the audited V1 child behavior: children clone the parent-effective compact prompt. Their
 automatic and manual local compaction uses that inherited value, while
 role-local `compact_prompt` and `experimental_compact_prompt_file` settings are
 excluded from the applied role override. Per-role compaction prompts are
@@ -52,7 +52,7 @@ continues to bypass the local Forge prompt for both root and child sessions.
 
 ### A self-contained execution checkpoint
 
-`plugins/codex-forge/assets/compact-prompt.md` asks the compaction model to preserve the objective, request mode, exact user/compatibility decisions, constraints, worktree state, validation, CodeGraph/source evidence, bounded child handoffs, blockers, and a concrete next action.
+`plugins/codex-forge/assets/compact-prompt.md` asks the compaction model to preserve the objective, normalized engineering contract, exact user/compatibility decisions, completed and current work, constraints, worktree state, validation, CodeGraph/source evidence, bounded child handoffs, blockers, and a concrete next action.
 
 This prompt is guidance, not deterministic storage. It controls local/custom-provider summarization when that branch is selected and records Forge's desired handoff content for audits and fallback providers. It does not override OpenAI-hosted remote compaction.
 
@@ -65,8 +65,7 @@ handoff. The current upstream template is nine lines / 426 bytes at
 [`codex-rs/prompts/templates/compact/prompt.md`](https://github.com/openai/codex/blob/main/codex-rs/prompts/templates/compact/prompt.md),
 and `SUMMARIZATION_PROMPT` includes that template from the prompts crate.
 
-Forge keeps the same handoff purpose for the local/custom-provider branch but makes the continuation contract task-execution-specific. Its 111-word override preserves `!RAW` versus
-normalized request mode, exact user and compatibility decisions, acceptance
+Forge keeps the same handoff purpose for the local/custom-provider branch but makes the continuation contract task-execution-specific. Its override preserves the normalized engineering contract, exact user and compatibility decisions, acceptance
 and stop conditions, AGENTS/Forge/skill constraints, source/CodeGraph evidence,
 runtime ids, bounded child handoffs, unresolved choices, and one
 next executable action. It explicitly collapses superseded exploration and
@@ -81,21 +80,21 @@ Codex Forge 0.1.0-alpha.5 installs the pinned Forge model-instruction layer from
 `$CODEX_HOME/forge/model-instructions.md` and points
 `model_instructions_file` at that exact target. Forge adds its runtime
 orchestration layer from `plugins/codex-forge/assets/developer-instructions.txt`
-through `developer_instructions`. Local/custom-provider compaction uses the checked-in compact prompt for the conversation handoff; hosted compaction uses Codex's remote summary path. Independently, Forge continuity state persists bounded child terminal handoffs and active `!RAW` text for resume/compact reinjection. The Forge model layer remains their consumer.
+through `developer_instructions`. Local/custom-provider compaction uses the checked-in compact prompt for the conversation handoff; hosted compaction uses Codex's remote summary path. Independently, Forge continuity state persists bounded child terminal handoffs for resume/compact reinjection. The Forge model layer remains their consumer.
 
 ## Current configuration boundaries
 
 | 0.1.0-alpha.5 state | Reason |
 | --- | --- |
 | Summary-backed rather than token-budget compaction | `features.token_budget = false` overrides model-catalog defaults. Hosted models use Codex remote compaction; local/custom providers use the local summary path. |
-| Local/custom-provider execution checkpoint | `assets/compact-prompt.md` records request mode, objective, exact decisions, worktree state, validation, Forge/CodeGraph evidence, child handoffs, blockers, and the next action when the local branch is selected. |
+| Local/custom-provider execution checkpoint | `assets/compact-prompt.md` records the normalized contract, objective, completed and current work, exact decisions, worktree state, validation, Forge/CodeGraph evidence, child handoffs, blockers, and the next action when the local branch is selected. |
 | Forge model instruction layer | `assets/model-instructions.md` is installed at `$CODEX_HOME/forge/model-instructions.md` and selected through `model_instructions_file`. |
 | Forge developer instruction layer | `assets/developer-instructions.txt` is installed through `developer_instructions`. |
-| Durable handoff state | Local/custom-provider compaction uses the Forge prompt; hosted compaction uses Codex's remote summary. Forge continuity state independently retains bounded child terminal handoffs and active `!RAW` text for resume/compact recovery. |
+| Durable handoff state | Local/custom-provider compaction uses the Forge prompt; hosted compaction uses Codex's remote summary. Forge continuity state independently retains bounded child terminal handoffs for resume/compact recovery. |
 
 Token-budget mode can be reconsidered when the target Codex version provides a durable checkpoint service in the active tool surface, the rollover guidance matches that service, and an integration test demonstrates that an unfinished task continues without user restatement.
 
-### Codex CLI 0.150.1, 0.151.0, and 0.152.0 compatibility
+### Codex CLI 0.150.1 through 0.153.1 compatibility
 
 Codex CLI 0.150.1 keeps the compaction paths above and enables retained-image
 budgeting for remote compaction by default. Retained images now count against
@@ -122,6 +121,13 @@ the user configuration does not set the feature. Forge's pinned catalog contains
 that metadata, so silence no longer preserves the summary-backed boundary. Forge
 therefore installs an explicit false value.
 
+Codex CLI 0.153.0 adds `features.context_management.experimental_mode`, an
+explicitly disabled context-management path for eligible ChatGPT sessions.
+Codex CLI 0.153.1 only backports GPT-6 Astra catalog support. Neither release
+changes Forge's summary-backed compaction decision. Goal token budgets remain a
+separate persisted Goal property and provide an automatic-continuation ceiling
+without selecting fresh-window context resets.
+
 The acceptance boundary remains unchanged: Forge explicitly disables `features.token_budget` and uses deterministic root goal budgets plus summary-backed compaction. Hosted summary content remains upstream-owned; Forge's durable orchestration state is the independent recovery layer it can enforce. None of these upstream releases provides a reason to enable Forge's prior token-budget reset configuration, so manual `model_context_window` or `auto_compact` limits are not installed from community snippets.
 
 ## Ownership and regression protection
@@ -132,7 +138,7 @@ The acceptance boundary remains unchanged: Forge explicitly disables `features.t
 | Specify the local/custom-provider checkpoint | `assets/compact-prompt.md` | Installed asset mapping and repository contract validation; hosted compaction does not consume this local prompt. |
 | Select lean Forge model instructions | `assets/model-instructions.md` and `scripts/installer/owners/config.mjs` | Installer mapping, exact managed path, and repository contract validation. |
 | Add lean Forge developer instructions | `assets/developer-instructions.txt` and `scripts/installer/owners/config.mjs` | Installed asset mapping and repository contract validation. |
-| Recover active execution evidence after resume/compaction | `scripts/lib/continuity-state.mjs`, `hooks/subagent-stop/record-handoff.mjs`, `hooks/user-prompt-submit/preserve-raw.mjs`, and `hooks/session-start/restore-continuity.mjs` | handoff tests persist bounded child results plus `!RAW` state and reinject them on resume/compact. |
+| Recover active execution evidence after resume/compaction | `scripts/lib/continuity-state.mjs`, `hooks/subagent-stop/record-handoff.mjs`, and `hooks/session-start/restore-continuity.mjs` | handoff tests persist bounded child results and reinject them on resume/compact as evidence under root-owned Goal state. |
 | Upgrade an existing installation | Installer managed-block replacement | Reinstall removed Forge's prior token-budget table while preserving unrelated user configuration. |
 
 ## Validation performed

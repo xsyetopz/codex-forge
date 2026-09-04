@@ -9,7 +9,7 @@ sessions lives in plugin assets, not in this file.
 | Question | Canonical owner |
 | --- | --- |
 | Why Forge replaces stock `default.md`, Lite vs standard Responses, V1 catalog restamp, child instruction inheritance | [model instruction evidence](docs/evidence/model-instructions.md) |
-| Exact Codex CLI 0.152.0 capability baseline | [0.152.0 source audit](docs/evidence/codex-cli-0.152.0.md) |
+| Exact Codex CLI 0.153.1 capability baseline | [0.153.1 capability delta](docs/evidence/codex-cli-0.153.1.md) and [0.152.0 source audit](docs/evidence/codex-cli-0.152.0.md) |
 | External harness and academic prior art | [research synthesis](docs/evidence/research-synthesis.md) |
 | Failure shape → lowest Forge layer | [failure controls](docs/reference/failure-controls.md) |
 | Local and community observations | [session evidence](docs/evidence/session-observations.md) and [community observations](docs/evidence/community-observations.md) |
@@ -34,7 +34,7 @@ instruction-layer edits.
 - `plugins/codex-forge/assets/developer-instructions.txt` owns root delegation,
   role routing, and review policy. Same ban on negative constructions. Role
   TOMLs own child differentiation and replace the root developer layer for the
-  child. On Codex CLI 0.152.0, children inherit the parent base instructions,
+  child. The Codex CLI 0.153.1 V1 path retains the audited parent base instructions,
   compact prompt, sandbox, and permissions; role-local copies of those settings
   are parsed but excluded from the applied role override. Children also inherit
   the root service tier, so role files omit it.
@@ -48,10 +48,12 @@ instruction-layer edits.
   Install copies the pinned complete `model_catalog_json`, whose Forge slugs
   use V1 and `use_responses_lite = false` (standard Responses, true replace).
   Details and citations are in the model-instruction audit.
-- Pin `features.token_budget = false` on CLI 0.152.0. Model metadata can now
-  activate token budgeting when configuration is silent; Forge still lacks the
-  durable checkpoint service required for fresh-window resets.
-- Enable `tools.update_plan` explicitly because 0.152.0 makes it opt-in and
+- Pin `features.token_budget = false` on CLI 0.153.1. This context-management
+  feature is separate from Goal token budgets; Goal mode remains default-on.
+- Enable `tools.update_plan` explicitly because the audited path makes it opt-in and
   Forge uses plan state as an observable coordination surface.
+- Cap spawned-agent concurrency at two and per-thread admissions at six. One
+  routine reviewer and one hard-tail reviewer are the deterministic review
+  ceilings; the root owns one repair cycle and final integration.
 - After install or hook-definition changes, a fresh Codex thread and `/hooks`
   trust review are still required.

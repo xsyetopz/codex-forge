@@ -1,5 +1,5 @@
 {
-	"description": "Codex Forge continuity context and focused safety guardrails.",
+	"description": "Codex Forge continuity context and focused agent-control guardrails.",
 	"hooks": {
 		"SessionStart": [
 			{
@@ -19,7 +19,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs\"",
 						"timeout": 10
 					}
 				]
@@ -29,20 +29,18 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs\"",
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs\"",
 						"timeout": 10
 					}
 				]
-			}
-		],
-		"UserPromptSubmit": [
+			},
 			{
+				"matcher": "^(?:create_goal|update_goal)$",
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/user-prompt-submit/preserve-raw.mjs\"",
-						"timeout": 10,
-						"additionalContextLimit": 128
+						"command": "bun \"$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs\"",
+						"timeout": 10
 					}
 				]
 			}

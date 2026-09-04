@@ -13,7 +13,7 @@ decision for a custom harness, not an accidental compatibility path.
 | Effective model transport | `plugins/codex-forge/assets/model-catalog.json` |
 | Installed selection | managed `model_instructions_file`, `developer_instructions`, and `model_catalog_json` config |
 
-The base file is currently 832 words with a SHA-256 pinned in
+The base file is currently 956 words with a SHA-256 pinned in
 `tests/unit/contracts/documentation.test.mjs`. It uses the official
 prompt-engineering hierarchy: `# Identity`, `# Instructions`, measured-gap
 `# Examples`, then `# Context`. Instructions use focused subsections for Task
@@ -88,7 +88,12 @@ Forge applies that guidance by:
 - defining execution-failure recovery as an operational task-state update;
 - retaining agent ownership across user-held capability boundaries;
 - requiring explicit user authorization for generated visual assets;
-- retaining `!RAW` for explicit wording preservation.
+- normalizing every request through one evidence-backed engineering contract;
+- resolving ordinary ambiguity from repository and compatibility evidence;
+- preserving durable LTS boundaries until user need, security, support,
+  correctness, or measured value justifies change;
+- keeping regression tests proportional to the verified defect and support
+  contract.
 
 The guidance advises incremental evaluation, not a ban on custom-harness base
 instructions. Forge's replacement remains an intentional evaluated surface.
@@ -108,7 +113,7 @@ their owner.
 
 ## Standard Responses requirement
 
-Codex 0.152.0 source shows two transports:
+The Codex source audit shows two transports:
 
 - Standard Responses sends base instructions as request instructions.
 - Responses Lite rebuilds base instructions and tools as prompt-side developer
@@ -121,14 +126,15 @@ partial catalog patch is invalid because `model_catalog_json` replaces the
 catalog rather than merging one field.
 
 See the [Codex CLI 0.152.0 source audit](codex-cli-0.152.0.md) for source paths
-and the exact runtime baseline.
+and the [0.153.1 capability delta](codex-cli-0.153.1.md) for the current runtime
+baseline.
 
 ## Child inheritance and role files
 
 Legacy V1 children inherit the parent session's effective base instructions.
 They also inherit the parent's effective compact prompt and live sandbox and
 permission state. Role-local `developer_instructions` replace the root
-developer layer for the child. Codex CLI 0.152.0 then applies a bounded role
+developer layer for the child. The audited V1 path applies a bounded role
 override containing developer instructions, model and reasoning settings,
 verbosity, personality, selected feature reductions, and selected skill
 reductions. Service tier follows the root session. The role projection excludes
@@ -138,13 +144,15 @@ misleading keys from role files.
 
 The current OpenAI [custom-agent documentation](https://developers.openai.com/codex/agent-configuration/subagents)
 describes custom agent files as session configuration layers and recommends
-narrow, opinionated agents. Forge's support contract remains the audited
-0.152.0 V1 implementation, whose applied role projection is narrower than the
-current general documentation.
+narrow, opinionated agents. Forge's support contract remains the audited V1
+implementation, whose applied role projection is narrower than the current
+general documentation.
 
 Forge keeps `features.multi_agent_v2` unset and restamps its GPT-5.6 catalog
-entries to V1. V2 has different fork and usage-hint semantics and is not a
-compatibility target for the current role files.
+entries to V1. The exact 0.153.1 V2 implementation defaults an omitted
+`fork_turns` value to full history, rejects V1 `fork_context`, and retains
+reported routing/configuration gaps. It is not a compatibility target for the
+current role files.
 
 ## Observed failure controls
 
@@ -159,8 +167,14 @@ compatibility target for the current role files.
 | User receives the agent's inaccessible-system investigation or verification work | `## Success and Ownership` retains agent ownership and limits handback to the smallest enabling action |
 | Repeated approval requests for safe local work | `## Authority and Scope` permission boundary |
 | Wrong model for ambiguous work | Root developer routing and role TOML |
-| Mandatory review/repair loop | Removed from hooks; optional task topology only |
-| Stale state creating new work | Continuity schema has no lifecycle authority |
+| Vague or incomplete prompt creates clarification churn | Senior enterprise-engineer interpretation plus narrowest evidence-supported assumption |
+| Age alone triggers platform churn | LTS compatibility rule requires user, security, support, correctness, or measured-value justification |
+| Child handoff stalls or blocks a Goal | Root-owned Goal state plus PreToolUse denial for child Goal mutations |
+| Parallel children trample shared worktree changes | Root routing gives concurrent children disjoint scopes and serializes shared-worktree mutation |
+| Test generation expands into tautologies or production-only test seams | Proportional validation contract prefers one discriminating regression and keeps production design owned by runtime requirements |
+| Mandatory review/repair loop | No Stop continuation hook; one routine review, one hard-tail review, and one repair cycle per milestone |
+| Excessive child fan-out | Two concurrent children plus six atomic admissions per thread |
+| Stale state creating new work | Continuity state admits requested spawns but never schedules work |
 
 One observation does not license a broad prompt rule. Record the observation,
 identify the owner, change the narrowest surface, and add a discriminating test.
@@ -168,7 +182,7 @@ identify the owner, change the narrowest surface, and add a discriminating test.
 ## Change procedure
 
 1. Read the current asset, this contract, relevant observations, and the
-   0.152.0 source audit.
+   0.153.1 capability delta and 0.152.0 source audit.
 2. Change one instruction group at a time and keep each rule in one layer.
 3. Preserve positive phrasing and the Identity → Instructions → Examples →
    Context hierarchy. Keep the Instruction subsections and their order stable.

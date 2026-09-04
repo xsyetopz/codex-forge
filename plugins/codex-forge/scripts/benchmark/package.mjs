@@ -80,7 +80,7 @@ export function renderConfig(remoteHome = DEFAULT_REMOTE_HOME) {
 		`[agents]`,
 		`default_subagent_model = "gpt-5.6-luna"`,
 		`default_subagent_reasoning_effort = "medium"`,
-		`max_concurrent_threads_per_session = 8`,
+		`max_concurrent_threads_per_session = 2`,
 		`max_depth = 1`,
 		`[apps._default]`,
 		`default_tools_approval_mode = "writes"`,

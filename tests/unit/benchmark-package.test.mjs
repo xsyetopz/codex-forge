@@ -102,7 +102,7 @@ test("portable Forge package carries absolute-path assets into CODEX_HOME", () =
 		"plugins/codex-forge/.codex-plugin/plugin.json",
 		"plugins/codex-forge/assets/config-template.toml",
 		"plugins/codex-forge/hooks/hooks.json",
-		"plugins/codex-forge/scripts/hooks/user-prompt-submit/preserve-raw.mjs",
+		"plugins/codex-forge/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs",
 	])
 		expect(existsSync(join(output, path))).toBe(true);
 	for (const path of [

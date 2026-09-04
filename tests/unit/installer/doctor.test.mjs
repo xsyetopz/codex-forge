@@ -44,7 +44,7 @@ function fakeCodex(
 		marketplace = true,
 		fail = "",
 		failBun = "",
-		codexVersion = "0.152.0",
+		codexVersion = "0.153.1",
 		entry,
 		pluginListOutput,
 	} = {},
@@ -212,7 +212,7 @@ describe("installer lifecycle", () => {
 			"codex-forge@disabled",
 		]);
 	});
-	test("doctor requires Codex CLI 0.152.0 in JSON and human output", () => {
+	test("doctor requires Codex CLI 0.153.1 in JSON and human output", () => {
 		const { root, home } = fixture();
 		const fake = fakeCodex(root, { codexVersion: "0.150.1" });
 		const environment = { PATH: `${fake.bin}${delimiter}${process.env.PATH}` };
@@ -228,7 +228,7 @@ describe("installer lifecycle", () => {
 
 		diagnosis = runInstaller(home, ["doctor"], environment);
 		expect(diagnosis.exitCode).toBe(1);
-		expect(diagnosis.stdout.toString()).toContain("required >= 0.152.0");
+		expect(diagnosis.stdout.toString()).toContain("required >= 0.153.1");
 
 		writeFileSync(
 			join(fake.bin, "codex"),

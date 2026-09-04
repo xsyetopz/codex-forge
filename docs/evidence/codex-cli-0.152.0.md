@@ -2,12 +2,12 @@
 
 Forge targets `rust-v0.152.0` exactly. The annotated tag object
 `7f6bee13af649d0da23ac0c2bf5c83f571fcd611` points to source commit
-`316795b3cf2a45e90d121d9f46499d4658b2645c`. The `vendor/codex-cli`
-submodule gitlink pins that exact commit; `rust-v0.152.0` is the corresponding
-upstream annotated tag and was the latest stable `rust-v*` tag on September 1,
-2026. `.gitmodules` uses shallow checkout mode. Git has no native submodule
-setting for following the newest tag, so Forge advances the gitlink only after
-auditing a specific stable release.
+`316795b3cf2a45e90d121d9f46499d4658b2645c`. `rust-v0.152.0` is the
+corresponding upstream annotated tag and was the latest stable `rust-v*` tag on
+September 1, 2026. The repository's shallow `vendor/codex-cli` checkout is a
+source-browsing dependency and may advance independently; this historical audit
+uses the exact tag and commit above rather than treating the current gitlink as
+the release identity.
 
 This document is the capability authority for Forge. External release link:
 [Codex CLI 0.152.0](https://github.com/openai/codex/releases/tag/rust-v0.152.0).

@@ -19,7 +19,6 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 		"SessionStart",
 		"SubagentStart",
 		"SubagentStop",
-		"UserPromptSubmit",
 	]);
 	const commands = Object.values(hooks.hooks)
 		.flatMap((groups) =>
@@ -38,9 +37,9 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	).toBe(true);
 	expect(commands).toEqual([
 		'bun "$PLUGIN_ROOT/scripts/hooks/session-start/restore-continuity.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-spawn-boundaries.mjs"',
-		'bun "$PLUGIN_ROOT/scripts/hooks/user-prompt-submit/preserve-raw.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs"',
+		'bun "$PLUGIN_ROOT/scripts/hooks/pre-tool-use/enforce-agent-control-boundaries.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-start/record-agent-start.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/subagent-stop/record-handoff.mjs"',
 		'bun "$PLUGIN_ROOT/scripts/hooks/session-end/clear-continuity.mjs"',
@@ -65,7 +64,7 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	})
 		.filter((entry) => entry.isFile())
 		.map((entry) => join(entry.parentPath, entry.name));
-	expect(hookFiles).toHaveLength(6);
+	expect(hookFiles).toHaveLength(5);
 	for (const path of hookFiles)
 		expect(path).toMatch(/\/scripts\/hooks\/[a-z0-9-]+\/[a-z0-9-]+\.mjs$/);
 	expect(hooks.description).toBeTruthy();
@@ -73,9 +72,6 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	expect(hooks.hooks.SessionStart[0].matcher).toBeUndefined();
 	expect(hooks.hooks.SessionStart[0].hooks).toHaveLength(1);
 	expect(hooks.hooks.SessionEnd[0].hooks[0].timeout).toBe(3);
-	expect(hooks.hooks.UserPromptSubmit[0].hooks[0].additionalContextLimit).toBe(
-		128,
-	);
 	expect(
 		hooks.hooks.SubagentStart[0].hooks[0].additionalContextLimit,
 	).toBeUndefined();
@@ -85,8 +81,23 @@ test("plugin, hooks, and MCP point at canonical MJS entrypoints", () => {
 	expect(hooks.hooks.PreToolUse.map((group) => group.matcher)).toEqual([
 		"^Agent$",
 		"^multi_agent_v1(?:__|[._:-])?spawn_agent$",
+		"^(?:create_goal|update_goal)$",
 	]);
 	expect(existsSync(join(PLUGIN, "scripts", "hook.mjs"))).toBe(false);
+	expect(
+		existsSync(join(PLUGIN, "scripts", "lib", "prompt-contract.mjs")),
+	).toBe(false);
+	expect(
+		existsSync(
+			join(
+				PLUGIN,
+				"scripts",
+				"hooks",
+				"user-prompt-submit",
+				"preserve-raw.mjs",
+			),
+		),
+	).toBe(false);
 	expect(
 		existsSync(
 			join(

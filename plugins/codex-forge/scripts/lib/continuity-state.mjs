@@ -19,6 +19,9 @@ const DEFAULT_LOCK_TTL_MS = 30 * 1000;
 const DEFAULT_LOCK_WAIT_MS = 2 * 1000;
 const MAX_HANDOFF_CHARS = 1800;
 const MAX_AGENTS = 16;
+const MAX_SPAWN_ADMISSIONS = 6;
+const MAX_ROUTINE_REVIEWS = 1;
+const MAX_TAIL_REVIEWS = 1;
 const AGENT_STATUSES = new Set(["running", "stopped"]);
 
 export function boundedHandoff(value, limit = MAX_HANDOFF_CHARS) {
@@ -45,7 +48,6 @@ export function sessionPaths(sessionId) {
 		key,
 		file,
 		lock: `${file}.lock`,
-		raw: `${file}.raw.txt`,
 	};
 }
 
@@ -57,11 +59,25 @@ function integerEnv(name, fallback) {
 function emptyState() {
 	const now = Date.now();
 	return {
-		version: 3,
+		version: 4,
 		agents: [],
+		spawn_admissions: [],
 		created_at: now,
 		updated_at: now,
 	};
+}
+
+function validSpawnAdmission(value) {
+	return Boolean(
+		value &&
+			typeof value === "object" &&
+			!Array.isArray(value) &&
+			typeof value.tool_use_id === "string" &&
+			value.tool_use_id.trim() &&
+			typeof value.role === "string" &&
+			value.role.startsWith("forge-") &&
+			typeof value.admitted_at === "number",
+	);
 }
 
 function validAgent(value) {
@@ -87,13 +103,43 @@ export function validState(value) {
 		value &&
 			typeof value === "object" &&
 			!Array.isArray(value) &&
-			value.version === 3 &&
+			value.version === 4 &&
 			Array.isArray(value.agents) &&
 			value.agents.length <= MAX_AGENTS &&
 			value.agents.every(validAgent) &&
+			Array.isArray(value.spawn_admissions) &&
+			value.spawn_admissions.length <= MAX_SPAWN_ADMISSIONS &&
+			value.spawn_admissions.every(validSpawnAdmission) &&
 			typeof value.created_at === "number" &&
 			typeof value.updated_at === "number",
 	);
+}
+
+function upgradeState(value) {
+	if (validState(value)) return value;
+	if (
+		!value ||
+		typeof value !== "object" ||
+		Array.isArray(value) ||
+		value.version !== 3 ||
+		!Array.isArray(value.agents) ||
+		value.agents.length > MAX_AGENTS ||
+		!value.agents.every(validAgent) ||
+		typeof value.created_at !== "number" ||
+		typeof value.updated_at !== "number"
+	)
+		return null;
+	return {
+		...value,
+		version: 4,
+		spawn_admissions: value.agents
+			.slice(0, MAX_SPAWN_ADMISSIONS)
+			.map((agent) => ({
+				tool_use_id: `legacy:${agent.id}`,
+				role: agent.role,
+				admitted_at: agent.started_at,
+			})),
+	};
 }
 
 async function ensureDirectory() {
@@ -167,12 +213,18 @@ async function readUnlocked(file) {
 			(typeof process.getuid === "function" && info.uid !== process.getuid())
 		)
 			return { state: null, corrupt: true };
-		const value = JSON.parse(await readFile(file, "utf8"));
-		return validState(value)
-			? { state: value, corrupt: false }
+		const parsed = JSON.parse(await readFile(file, "utf8"));
+		const value = upgradeState(parsed);
+		return value
+			? {
+					state: value,
+					corrupt: false,
+					migrated: parsed.version !== value.version,
+				}
 			: { state: null, corrupt: true };
 	} catch (error) {
-		if (error?.code === "ENOENT") return { state: null, corrupt: false };
+		if (error?.code === "ENOENT")
+			return { state: null, corrupt: false, migrated: false };
 		return { state: null, corrupt: true };
 	}
 }
@@ -211,7 +263,7 @@ export async function transitionSession(sessionId, callback) {
 		if (loaded.corrupt) return { ok: false, corrupt: true, paths };
 		const current = loaded.state;
 		const result = await callback(current ? structuredClone(current) : null);
-		if (result?.write !== false) {
+		if (result?.write !== false || loaded.migrated) {
 			const next = result?.state ?? current;
 			if (next && !validState(next)) {
 				const error = new Error("invalid Forge handoff state transition");
@@ -242,6 +294,71 @@ export async function readSession(sessionId) {
 		write: false,
 	}));
 	return result.ok ? result.state : null;
+}
+
+export async function recordSpawnAdmission(sessionId, { toolUseId, role }) {
+	if (!toolUseId || !role?.startsWith("forge-"))
+		return { ok: false, allowed: false, reason: "invalid spawn admission" };
+	const result = await transitionSession(sessionId, (current) => {
+		const state = current ?? emptyState();
+		const existing = state.spawn_admissions.find(
+			(admission) => admission.tool_use_id === toolUseId,
+		);
+		if (existing)
+			return {
+				state,
+				write: false,
+				value: { allowed: true, duplicate: true },
+			};
+		if (state.spawn_admissions.length >= MAX_SPAWN_ADMISSIONS)
+			return {
+				state,
+				write: false,
+				value: {
+					allowed: false,
+					reason: `Forge child admission budget reached (${MAX_SPAWN_ADMISSIONS} per thread). Complete the milestone in the root or start the next milestone in a fresh thread.`,
+				},
+			};
+		const routineReviews = state.spawn_admissions.filter(
+			(admission) => admission.role === "forge-reviewer",
+		).length;
+		if (role === "forge-reviewer" && routineReviews >= MAX_ROUTINE_REVIEWS)
+			return {
+				state,
+				write: false,
+				value: {
+					allowed: false,
+					reason:
+						"Forge permits one routine reviewer per thread. Integrate the existing findings and validate in the root.",
+				},
+			};
+		const tailReviews = state.spawn_admissions.filter(
+			(admission) => admission.role === "forge-tail-reviewer",
+		).length;
+		if (role === "forge-tail-reviewer" && tailReviews >= MAX_TAIL_REVIEWS)
+			return {
+				state,
+				write: false,
+				value: {
+					allowed: false,
+					reason:
+						"Forge permits one hard-tail reviewer per thread. Decide the remaining question in the root.",
+				},
+			};
+		state.spawn_admissions.push({
+			tool_use_id: toolUseId,
+			role,
+			admitted_at: Date.now(),
+		});
+		return { state, value: { allowed: true, duplicate: false } };
+	});
+	return result.ok
+		? { ok: true, ...result.value }
+		: {
+				ok: false,
+				allowed: false,
+				reason: "spawn admission state unavailable",
+			};
 }
 
 export async function recordAgentStart(sessionId, { id, role }) {
@@ -294,57 +411,6 @@ export async function recordAgentStop(sessionId, { id, role, handoff }) {
 	return result.ok;
 }
 
-export async function recordRawTask(sessionId, prompt) {
-	if (typeof sessionId !== "string" || !sessionId.trim()) return false;
-	if (typeof prompt !== "string" || !prompt.length) return false;
-	const paths = sessionPaths(sessionId);
-	let release;
-	try {
-		await ensureDirectory();
-		release = await acquireLock(paths.lock);
-		await writeFile(paths.raw, prompt, { encoding: "utf8", mode: 0o600 });
-		await chmod(paths.raw, 0o600);
-		return true;
-	} catch {
-		return false;
-	} finally {
-		if (release) await release();
-	}
-}
-
-export async function clearRawTask(sessionId) {
-	if (typeof sessionId !== "string" || !sessionId.trim()) return false;
-	const paths = sessionPaths(sessionId);
-	let release;
-	try {
-		await ensureDirectory();
-		release = await acquireLock(paths.lock);
-		await rm(paths.raw, { force: true });
-		return true;
-	} catch {
-		return false;
-	} finally {
-		if (release) await release();
-	}
-}
-
-export async function readRawTask(sessionId) {
-	const paths = sessionPaths(sessionId);
-	try {
-		const info = await lstat(paths.raw);
-		if (
-			!info.isFile() ||
-			info.isSymbolicLink() ||
-			(info.mode & 0o077) !== 0 ||
-			(typeof process.getuid === "function" && info.uid !== process.getuid())
-		)
-			return null;
-		return { path: paths.raw, text: await readFile(paths.raw, "utf8") };
-	} catch {
-		return null;
-	}
-}
-
 export async function removeSession(sessionId) {
 	if (typeof sessionId !== "string" || !sessionId.trim()) return false;
 	const paths = sessionPaths(sessionId);
@@ -353,7 +419,7 @@ export async function removeSession(sessionId) {
 		await ensureDirectory();
 		release = await acquireLock(paths.lock);
 		await rm(paths.file, { force: true });
-		await rm(paths.raw, { force: true });
+		await rm(`${paths.file}.raw.txt`, { force: true });
 		return true;
 	} catch {
 		return false;
@@ -418,28 +484,14 @@ export async function cleanupExpiredStates(
 	for (const entry of entries) {
 		if (!entry.isFile() || !/^[a-f0-9]{64}\.json\.raw\.txt$/.test(entry.name))
 			continue;
-		const key = entry.name.slice(0, 64);
-		if (preservedKey && key === preservedKey) continue;
-		const raw = join(directory, entry.name);
-		const stateFile = join(directory, `${key}.json`);
+		const legacy = join(directory, entry.name);
 		try {
-			await stat(stateFile);
-			continue;
-		} catch (error) {
-			if (error?.code !== "ENOENT") continue;
-		}
-		let release;
-		try {
-			release = await acquireLock(`${stateFile}.lock`);
-			const info = await stat(raw);
+			const info = await stat(legacy);
 			if (now - info.mtimeMs > ttl) {
-				await rm(raw, { force: true });
+				await rm(legacy, { force: true });
 				removed += 1;
 			}
-		} catch {
-		} finally {
-			if (release) await release();
-		}
+		} catch {}
 	}
 	return { removed, directory };
 }

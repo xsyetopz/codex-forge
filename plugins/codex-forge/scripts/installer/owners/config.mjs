@@ -55,8 +55,8 @@ const SCHEMA_DIRECTIVE =
 	"#:schema https://developers.openai.com/codex/config-schema.json";
 const SCHEMA_DIRECTIVE_PATTERN =
 	/^#:schema https:\/\/developers\.openai\.com\/codex\/config-schema\.jso(?:n)?\s*\n?/gm;
-const DEFAULT_MAX_CONCURRENT_THREADS = 8;
-const LEGACY_DEFAULT_MAX_CONCURRENT_THREADS = 3;
+const DEFAULT_MAX_CONCURRENT_THREADS = 2;
+const LEGACY_DEFAULT_MAX_CONCURRENT_THREADS = new Set([3, 8]);
 const maxThreadsAssignment = (text) =>
 	text.match(
 		/^\s*(?:agents\.)?max_concurrent_threads_per_session\s*=\s*(\d+)\s*(?:#.*)?$/m,
@@ -295,7 +295,7 @@ export function resolveMaxConcurrentThreads(text) {
 			.find(Boolean) ?? null;
 	if (
 		managedValue === null ||
-		Number(managedValue) === LEGACY_DEFAULT_MAX_CONCURRENT_THREADS
+		LEGACY_DEFAULT_MAX_CONCURRENT_THREADS.has(Number(managedValue))
 	)
 		return DEFAULT_MAX_CONCURRENT_THREADS;
 	return Number(managedValue);

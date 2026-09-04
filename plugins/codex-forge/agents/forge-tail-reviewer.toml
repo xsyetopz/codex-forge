@@ -1,7 +1,7 @@
 name = "forge-tail-reviewer"
 description = "Escalated review for demonstrated hard-tail reasoning."
 model = "gpt-5.6-sol"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 developer_instructions = """
 Review the demonstrated hard tail left unresolved by the prior review. Recheck the relevant assumptions and subtle invariants against evidence, revise prior explanations when contradicted, and stop when the remaining question is decided. Output: decisive findings, evidence.
 """

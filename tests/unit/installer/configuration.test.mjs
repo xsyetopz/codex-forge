@@ -171,22 +171,25 @@ describe("installer lifecycle", () => {
 		);
 		expect(readFileSync(target)).toEqual(agentsBefore);
 	});
-	test("migrates a prior Forge-managed default cap from 3 to 8", () => {
-		const { home } = fixture();
-		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
-		writeFileSync(
-			join(home, "config.toml"),
-			readFileSync(join(home, "config.toml"), "utf8").replace(
-				"max_concurrent_threads_per_session = 8",
-				"max_concurrent_threads_per_session = 3",
-			),
-		);
-		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
-		expect(
-			TOML.parse(readFileSync(join(home, "config.toml"), "utf8")).agents
-				.max_concurrent_threads_per_session,
-		).toBe(8);
-	});
+	test.each([3, 8])(
+		"migrates prior Forge-managed default cap %i to 2",
+		(priorDefault) => {
+			const { home } = fixture();
+			expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+			writeFileSync(
+				join(home, "config.toml"),
+				readFileSync(join(home, "config.toml"), "utf8").replace(
+					"max_concurrent_threads_per_session = 2",
+					`max_concurrent_threads_per_session = ${priorDefault}`,
+				),
+			);
+			expect(install(home, "install", "--no-tools").exitCode).toBe(0);
+			expect(
+				TOML.parse(readFileSync(join(home, "config.toml"), "utf8")).agents
+					.max_concurrent_threads_per_session,
+			).toBe(2);
+		},
+	);
 	test("adds 0.152 config scopes to a prior managed installation", () => {
 		const { home } = fixture();
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
@@ -282,7 +285,7 @@ describe("installer lifecycle", () => {
 		writeFileSync(
 			join(home, "config.toml"),
 			readFileSync(join(home, "config.toml"), "utf8").replace(
-				"max_concurrent_threads_per_session = 8",
+				"max_concurrent_threads_per_session = 2",
 				"max_concurrent_threads_per_session = 6",
 			),
 		);
@@ -318,11 +321,11 @@ describe("installer lifecycle", () => {
 		const configPath = join(home, "config.toml");
 		const firstInstall = readFileSync(configPath, "utf8");
 		expect(firstInstall).toContain("# >>> codex-forge >>>");
-		expect(firstInstall).toContain("max_concurrent_threads_per_session = 8");
+		expect(firstInstall).toContain("max_concurrent_threads_per_session = 2");
 		writeFileSync(
 			configPath,
 			firstInstall.replace(
-				"max_concurrent_threads_per_session = 8",
+				"max_concurrent_threads_per_session = 2",
 				"max_concurrent_threads_per_session = 6",
 			),
 		);

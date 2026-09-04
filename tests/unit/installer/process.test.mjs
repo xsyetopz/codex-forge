@@ -60,7 +60,7 @@ function _fakeCodex(
 		marketplace = true,
 		fail = "",
 		failBun = "",
-		codexVersion = "0.152.0",
+		codexVersion = "0.153.1",
 		entry,
 		pluginListOutput,
 	} = {},
@@ -338,7 +338,7 @@ describe("installer lifecycle", () => {
 		expect(result.exitCode).toBe(2);
 		expect(readFileSync(target, "utf8")).toBe(before);
 	});
-	test("fresh install sets the eight-thread default and restores unrelated configuration", () => {
+	test("fresh install sets the two-thread default and restores unrelated configuration", () => {
 		const { home, original } = fixture();
 		expect(install(home, "install", "--no-tools").exitCode).toBe(0);
 		const globalAgents = readFileSync(join(home, "AGENTS.md"), "utf8");
@@ -377,11 +377,12 @@ describe("installer lifecycle", () => {
 			expect(model.display_name).toBeTruthy();
 		}
 		expect(parsed.approval_policy).toBe("on-request");
-		expect(parsed.agents.max_concurrent_threads_per_session).toBe(8);
+		expect(parsed.agents.max_concurrent_threads_per_session).toBe(2);
 		expect(parsed.agents.default_subagent_reasoning_effort).toBe("medium");
 		expect(parsed.agents.max_depth).toBe(1);
 		expect(parsed.features.multi_agent).toBeUndefined();
 		expect(parsed.features.multi_agent_v2).toBeUndefined();
+		expect(parsed.features.goals).toBeUndefined();
 		expect(parsed.features.mcp_2026_07_28).toBe(true);
 		expect(parsed.agents["forge-worker"]).toBeUndefined();
 		expect(existsSync(join(home, "agents", "forge-worker.toml"))).toBe(true);

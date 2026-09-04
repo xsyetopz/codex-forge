@@ -4,7 +4,7 @@ Codex Forge has four runtime owners with one-way dependencies.
 
 | Owner | Responsibility | Depends on |
 | --- | --- | --- |
-| Plugin assets | Base identity, developer routing, model catalog, roles, rules | Codex 0.152.0 configuration contracts |
+| Plugin assets | Base identity, developer routing, model catalog, roles, rules | Codex 0.153.1 configuration contracts |
 | Installer | Transactional ownership of user-level Forge files and configuration | Plugin assets and filesystem transaction helpers |
 | Hooks | Small event adapters for continuity and spawn-boundary enforcement | Codex hook JSON contract and `scripts/lib/continuity-state.mjs` |
 | Tests | Executable product and lifecycle contracts | Canonical assets and public entrypoints |
@@ -22,13 +22,12 @@ Forge hooks are adapters, not a workflow scheduler. The current surface is:
 | Event | Behavior |
 | --- | --- |
 | `SessionStart` | Restore bounded continuity and report CodeGraph availability |
-| `PreToolUse` | Validate only agent spawn boundaries |
-| `UserPromptSubmit` | Preserve explicit `!RAW` task text |
+| `PreToolUse` | Validate agent spawn boundaries and atomically reserve bounded admissions |
 | `SubagentStart` | Record the child without adding prompt context |
 | `SubagentStop` | Record the final bounded handoff |
 | `SessionEnd` | Clear per-session continuity state |
 
-Forge deliberately has no `Stop` hook. Codex 0.152.0 treats a blocking Stop or
+Forge deliberately has no `Stop` hook. The audited Codex path treats a blocking Stop or
 SubagentStop hook as a continuation request, so a mandatory worker/reviewer
 state machine at that boundary can override a later user instruction to stop.
 Agent interruption, closure, waiting, and messaging remain native Codex tools
@@ -41,10 +40,17 @@ enforcement owner instead of being repeated as hook context.
 
 ## Continuity boundary
 
-`scripts/lib/continuity-state.mjs` records observations only: bounded child
-status/handoffs and explicit `!RAW` text. It cannot authorize a worker, reviewer,
-repair, or recheck. Native Codex owns agent execution and cancellation. This
-keeps stale Forge state from creating work after user cancellation.
+`scripts/lib/continuity-state.mjs` stores two classes of state. Spawn admissions
+are atomic enforcement records capped at six per thread, including one routine
+reviewer and one hard-tail reviewer. Child status and handoffs remain
+observations. The state never schedules a worker, reviewer, repair,
+or recheck. Native Codex owns agent execution and cancellation, so stale Forge
+state cannot create work after user cancellation.
+
+Goal creation and status updates are root-owned. The PreToolUse hook returns a
+Forge child's Goal mutation request to the root, while handoffs remain bounded
+evidence. Ambiguity and incomplete specifications remain root engineering work
+rather than child-controlled Goal blockers.
 
 ## Migration decision
 

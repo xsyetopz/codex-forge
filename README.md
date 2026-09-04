@@ -1,6 +1,6 @@
 # Codex Forge
 
-Codex Forge is a Codex CLI 0.152.0 plugin and installer. It supplies a lean
+Codex Forge is a Codex CLI 0.153.1 plugin and installer. It supplies a lean
 replacement model identity, task-shaped agent roles, focused continuity hooks,
 a pinned model catalog, CodeGraph integration, and transactional user-level
 configuration. Codex remains the owner of approvals, sandboxing, agent
@@ -13,7 +13,7 @@ Initialize the source-audit dependency after cloning with
 
 ## Install
 
-Prerequisites: Codex CLI 0.152.0 and Bun 1.4 or newer.
+Prerequisites: Codex CLI 0.153.1 and Bun 1.4 or newer.
 
 Close all Codex CLI/app sessions and the app server before direct installation,
 removal, or manual version restamping. Interactive `reinstall` can perform that
@@ -74,7 +74,7 @@ review, research, or skill-authoring workflows.
 
 ### Model instructions
 
-Forge installs a pinned 832-word replacement at
+Forge installs a pinned 956-word replacement at
 `$CODEX_HOME/forge/model-instructions.md` and selects it with
 `model_instructions_file`. It uses the official prompt-engineering Markdown
 hierarchy: Identity, Instructions with focused subsections, measured-gap
@@ -85,7 +85,7 @@ remove stock identity clauses.
 The pinned full model catalog sets Forge GPT-5.6 entries to
 `use_responses_lite = false`, so standard Responses uses the configured base
 instructions as the replacement layer. See [model instruction evidence](docs/evidence/model-instructions.md)
-and the [0.152.0 source audit](docs/evidence/codex-cli-0.152.0.md).
+and the [0.153.1 capability delta](docs/evidence/codex-cli-0.153.1.md).
 
 ### Agent routing
 
@@ -93,38 +93,39 @@ Forge uses registered multi-agent V1 roles. `features.multi_agent_v2` stays
 unset; the pinned catalog selects V1. The roles route by task shape:
 
 - Luna: exact or bounded local execution with a decisive oracle;
-- Terra: repository intelligence and long-context retrieval;
-- Sol: architecture, ambiguous debugging, semantic review, and hard-tail work.
+- Terra: repository intelligence, retrieval, debugging, and routine review;
+- Sol: architecture and demonstrated hard-tail review.
 
-Medium is the ordinary baseline. Low fits one exact operation; high and xhigh
-are explicit escalations. Eight spawned threads is a capacity ceiling, not a
-target. Zero children is valid, children remain one level deep, and shared
-writes stay serialized.
+Medium is the ordinary baseline. Low fits one exact operation; high is an
+explicit escalation. Two concurrent children is a capacity ceiling, not a
+target. Each thread admits at most six children, one routine reviewer, and one
+hard-tail reviewer. Zero children is valid, children remain one level deep,
+and shared writes stay serialized.
 
-Agent review is optional. Forge has no persisted worker → reviewer → repair
-state machine. Native `interrupt_agent`, `close_agent`, `send_input`, and
-`wait_agent` are never matched by Forge hooks.
+Agent review is optional. One repair cycle follows actionable review findings;
+the root then integrates and validates. Native `interrupt_agent`,
+`close_agent`, `send_input`, and `wait_agent` are never matched by Forge hooks.
 
 ### Hooks
 
-Hook paths use `scripts/hooks/<hook-type>/<behavior>.mjs`. Six focused handlers
+Hook paths use `scripts/hooks/<hook-type>/<behavior>.mjs`. Five focused handlers
 remain:
 
 - `SessionStart/restore-continuity`
-- `PreToolUse/enforce-agent-spawn-boundaries` (two spawn aliases)
-- `UserPromptSubmit/preserve-raw`
+- `PreToolUse/enforce-agent-control-boundaries` (spawn and Goal ownership)
 - `SubagentStart/record-agent-start`
 - `SubagentStop/record-handoff`
 - `SessionEnd/clear-continuity`
 
-There is no Forge Stop hook. Codex 0.152.0 turns a blocking Stop result into a
+There is no Forge Stop hook. The audited Codex path turns a blocking Stop result into a
 continuation prompt, which makes it unsuitable for mandatory review policy.
-Shared observational state lives in `scripts/lib/continuity-state.mjs` and
-cannot authorize new agent work.
+Shared state lives in `scripts/lib/continuity-state.mjs`; PreToolUse atomically
+records bounded spawn admissions, while SubagentStart and SubagentStop record
+observational lifecycle and handoff data. The state cannot schedule work.
 
 V1 children inherit the parent session's effective base instructions and local
 compact prompt. Their role TOML replaces the root developer instruction layer
-with role-specific behavior; Codex 0.152.0 drops role-local base-instruction,
+with role-specific behavior; the audited V1 path drops role-local base-instruction,
 compact-prompt, sandbox, and service-tier settings from the applied override.
 
 ### Permissions
@@ -138,10 +139,14 @@ Guardian freshness, or remote sandbox path logic in hooks.
 
 Forge uses summary-backed compaction. The checked-in compact prompt is the
 local/custom-provider override and handoff specification; hosted sessions use
-Codex remote compaction. Bounded child handoffs and explicit `!RAW` text are
-stored for resume/compact continuity, but the store has no scheduler state.
-Forge pins token-budget compaction off on 0.152.0 because model metadata can now
-activate it when configuration is silent. See [compaction](docs/operations/compaction.md).
+Codex remote compaction. Bounded child handoffs are stored for resume/compact
+continuity, but the store has no scheduler state. User prompts are normalized
+into evidence-backed engineering contracts instead of being persisted through
+a wording-preservation mode.
+Forge pins token-budget context resets off on 0.153.1. This feature is separate
+from Goal token budgets: Goals remain default-on, and an explicit Goal budget
+stops automatic continuation at the requested boundary. See
+[compaction](docs/operations/compaction.md).
 
 ### CodeGraph
 
@@ -152,11 +157,10 @@ Repository indexing remains an explicit user decision; Forge synchronizes an
 existing index before graph-dependent work when source changes may have made it
 stale.
 
-The exact Codex 0.152.0 source used for this audit is a shallow Git submodule at
-the stable `vendor/codex-cli` path. Its gitlink is pinned to the peeled commit
-for the latest stable `rust-v*` tag verified on September 1, 2026. Submodules do
-not support a floating "latest tag" selector; checkout mode deliberately keeps
-the audited commit fixed until the next explicit release audit.
+The shallow `vendor/codex-cli` submodule supports source browsing. Release
+evidence uses exact upstream tags rather than inferring identity from the
+current gitlink: the historical audit records `rust-v0.152.0`, while the
+current delta records `rust-v0.153.1` and its official release.
 
 ## Validate
 

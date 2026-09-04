@@ -52,12 +52,12 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Tool use & execution | Reasoning leakage into machine arguments | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Unbounded tool loop | base tool policy + forge.rules/PreToolUse where enforceable |
 | Tool use & execution | Serializable independent-call churn | concrete Code Mode bounded batching rule; dependencies/adaptive work remain sequential |
-| Tool use & execution | Poll/heartbeat churn | normal multi-agent V1 wait contract + PreToolUse rewrite that raises short waits to 300 seconds |
+| Tool use & execution | Poll/heartbeat churn | developer long-wait contract permits one model-mediated poll and requires concrete new evidence before another |
 | Tool use & execution | Stale current-thread background terminal | base current-thread lifecycle rule + developer exec-session ownership contract + returned session identifier |
 | Code & contract correctness | Interface-shape mismatch | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | One-sided contract edit | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Partial implementation presented as complete | model instructions + applicable forge-* skill provide guidance/workflow; the repository contract test deterministically guards shipped instruction artifacts; live-model behavior remains UNVERIFIED unless a hook or rule enforces it |
-| Code & contract correctness | Staged version/phase presented as completion while a bounded requested outcome remains unfinished | model instructions provide current-workstream acceptance-boundary guidance; observational evidence is recorded in `observational-evidence-2026-08-22.md`; the repository contract test guards the shipped artifacts, while live-model behavior remains UNVERIFIED unless a hook or rule enforces it |
+| Code & contract correctness | Staged version/phase presented as completion while a bounded requested outcome remains unfinished | one-workstream completion contract keeps acceptance attached to the full requested outcome; internal checkpoints organize execution only |
 | Code & contract correctness | Silent code loss | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Generated-source confusion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Code & contract correctness | Wrapper-source confusion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
@@ -73,6 +73,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Verification & testing | Verification-scope underreach | reviewer role + claim-relevant verification contract |
 | Verification & testing | Verification churn | reviewer role + focused validation batch |
 | Verification & testing | Tautological/static-structure test generation | model instructions + reviewer role require a test to distinguish a meaningful wrong behavior, regression, boundary, or failure mode |
+| Verification & testing | Test multiplication and production seams created for test convenience | proportional-test contract prefers one discriminating regression per verified bug or boundary while runtime requirements retain production-design ownership |
 | Verification & testing | Flaky-success laundering | reviewer role + claim-relevant verification contract |
 | Verification & testing | Snapshot/golden acceptance reflex | reviewer role + claim-relevant verification contract |
 | Verification & testing | Mocking away the behavior | reviewer role + claim-relevant verification contract |
@@ -86,6 +87,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Activity-as-progress | base instructions + stop/completion contract |
 | Workflow & stopping | Premature hand-back | base instructions + stop/completion contract |
 | Workflow & stopping | Blocker invention | base instructions + stop/completion contract |
+| Workflow & stopping | Child handoff creates, clears, completes, or blocks the root Goal | root Goal ownership in base/developer instructions + PreToolUse denial for Forge child Goal mutations |
 | Workflow & stopping | Root-cause avoidance | debugger role + stop/completion contract |
 | Workflow & stopping | First-finding premature audit stop | debugger/reviewer roles exhaust stated audit criteria/scope |
 | Workflow & stopping | Simple-task overthinking | base narrow-first escalation + deliver/debug smallest-sufficient path |
@@ -97,10 +99,11 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Workflow & stopping | Unsupported agreement with user correction | base Goal contract classifies user statements and makes agreement or disagreement an evidence-based conclusion |
 | Workflow & stopping | Missing capability becomes user-owned investigation or verification | base Success contract retains agent ownership, requests the smallest user-held enabling action, and resumes the remaining work; hosted behavior remains observational until live evaluation |
 | Workflow & stopping | Goal/context drift | native goal state + base instructions |
-| Workflow & stopping | Goal pause/block conflation | Codex 0.152.0 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
-| Multi-agent & delegation | Subagent proliferation | base instructions + PreToolUse spawn gate + max_depth |
+| Workflow & stopping | Goal pause/block conflation | Codex 0.153.1 goal contract: model tools synchronize/create and update complete/blocked; user/system controls own pause/resume/edit/clear; nested usage counts toward the root budget |
+| Workflow & stopping | Goal budget confused with context token budgeting | Goal token budget is created only after an explicit user request; `features.token_budget = false` continues to select summary-backed context behavior |
+| Multi-agent & delegation | Subagent proliferation | two-thread concurrency ceiling + six atomic PreToolUse admissions per thread + V1 max_depth one |
 | Multi-agent & delegation | Duplicate multi-agent work | base instructions + PreToolUse spawn gate + max_depth |
-| Multi-agent & delegation | Delegation or review ceremony exceeds task value | zero-child option + risk-driven review + bounded role routing |
+| Multi-agent & delegation | Delegation or review ceremony exceeds task value | zero-child option + one routine reviewer + one hard-tail reviewer + one repair cycle + bounded role routing |
 | Multi-agent & delegation | Conflicting parallel edits | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Subagent authority overtrust | base instructions + PreToolUse spawn gate + max_depth |
 | Multi-agent & delegation | Coordination overhead exceeds value | base instructions + PreToolUse spawn gate + child-role agent disablement |
@@ -109,7 +112,7 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Multi-agent & delegation | Duplicate broad repository reconnaissance across workers | optional `forge-repo-intelligence` preflight returns bounded structural/impact evidence to root before implementation |
 | Multi-agent & delegation | V2 spawn hides model overrides and rejects the natural override call | pinned complete `model_catalog_json` restamps Forge slugs to V1; leave `features.multi_agent_v2` unset; registered V1 roles + `fork_context=false` |
 | Multi-agent & delegation | Integrated V1 agent left open | developer collect-integrate-close contract + V1 `close_agent`; completed agents otherwise retain concurrency slots |
-| Multi-agent & delegation | Weak-model blind audit | acceptance-surface routing: Luna requires an explicit contract, local blast radius, decisive oracle, and cheap rollback; consequential, ambiguous, cross-system, or intent-reconstructing work remains with Sol roles |
+| Multi-agent & delegation | Weak-model blind audit | acceptance-surface routing: Luna requires an explicit contract, local blast radius, decisive oracle, and cheap rollback; Terra owns routine debugging/review; Sol is reserved for architecture and one demonstrated hard tail |
 | Skills, instructions & context | Applicable guidance ignored | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Ceremonial instruction reading | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Instruction decay | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
@@ -119,7 +122,9 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Skills, instructions & context | Instruction-file sprawl | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Context-file overload | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
 | Skills, instructions & context | Prompt patch stacking | distinct forge-* triggers/execution/stop contracts; lean always-on prompt |
-| Skills, instructions & context | User rhetoric/repetition inflates the execution prompt | base `!RAW` grammar + lean internal task-contract normalization preserving requirements and decisions |
+| Skills, instructions & context | User rhetoric/repetition inflates the execution prompt | universal lean engineering-contract normalization preserving requirements and decisions |
+| Skills, instructions & context | Vague prompt causes clarification churn | enterprise interpretation contract + repository evidence + narrowest conservative assumption; questions are reserved for materially divergent external, compatibility, destructive, spending, credential, or authority choices |
+| Skills, instructions & context | Age-driven compatibility churn | LTS compatibility contract: established support commitments and operational evidence outrank novelty |
 | Skills, instructions & context | One observed failure widened into a universal prompt rule | record in observational-evidence; map here; keep the smallest Goal-slot wording; see model-instruction audit |
 | Memory, context & state | Stale or contaminated context | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Memory, context & state | Memory accumulation | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
@@ -156,4 +161,4 @@ For context continuity specifically, Forge selects standard summary-backed compa
 | Performance & operational efficiency | Search/read churn | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Performance & operational efficiency | Overbroad repository operations | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
 | Performance & operational efficiency | Instruction/workflow accretion | base instructions + applicable forge-* skill; hard enforcement only at enforcing layer |
-| Performance & operational efficiency | Subscription quota spikes | model/effort routing: Luna/Terra for routine work, medium-first defaults, Sol and xhigh only for justified hard tails |
+| Performance & operational efficiency | Subscription quota spikes | two concurrent children, six admissions per thread, Luna/Terra for routine work, medium-first defaults, and Sol high only for a justified hard tail |

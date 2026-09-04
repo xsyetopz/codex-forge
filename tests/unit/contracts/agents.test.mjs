@@ -74,11 +74,17 @@ test("registered agent role contracts remain bounded", () => {
 		TOML.parse(read(join(PLUGIN, "agents", "forge-retriever.toml")))
 			.model_reasoning_effort,
 	).toBe("medium");
-	for (const name of ["forge-architect", "forge-debugger", "forge-reviewer"])
+	for (const name of ["forge-architect", "forge-reviewer"])
 		expect(
 			TOML.parse(read(join(PLUGIN, "agents", `${name}.toml`)))
 				.model_reasoning_effort,
 		).toBe("medium");
+	const debuggerRole = TOML.parse(
+		read(join(PLUGIN, "agents", "forge-debugger.toml")),
+	);
+	expect(debuggerRole.model).toBe("gpt-5.6-terra");
+	expect(debuggerRole.model_reasoning_effort).toBe("high");
+	expect(reviewer.model).toBe("gpt-5.6-terra");
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-hard-worker.toml")))
 			.model_reasoning_effort,
@@ -86,7 +92,7 @@ test("registered agent role contracts remain bounded", () => {
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-tail-reviewer.toml")))
 			.model_reasoning_effort,
-	).toBe("xhigh");
+	).toBe("high");
 	expect(
 		TOML.parse(read(join(PLUGIN, "agents", "forge-retriever.toml"))).model,
 	).toBe("gpt-5.6-terra");
@@ -121,4 +127,9 @@ test("prompt layers keep one runtime owner per generic behavior", () => {
 		expect(read(join(PLUGIN, "agents", name))).not.toContain(
 			"Establish relevance before reading",
 		);
+	expect(developer).toContain("at most six child admissions");
+	expect(developer).toContain("One repair cycle");
+	expect(developer).toContain(
+		"Add a Goal token budget only when the user explicitly requests a budget",
+	);
 });

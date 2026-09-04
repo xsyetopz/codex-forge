@@ -46,6 +46,43 @@ justify a universal rule about every agent workflow or model. New prompt policy
 requires either repeated observations or an independently established contract;
 deterministic runtime failures should be fixed at the owning code boundary.
 
+## Finding: alpha.5 removed the continuation loop but retained costly fan-out
+
+On September 3, 2026, local rollout analysis separated sessions created before
+and after the alpha.5 install boundary. Alpha.5 removed the blocking
+SubagentStop continuation hook, so the earlier identical-prompt loop was not
+present in newer sessions. Usage nevertheless remained extreme because long
+Goal threads repeatedly selected children and Sol reviewers.
+
+Observed post-alpha.5 totals across eight root threads:
+
+- 264 child threads;
+- 10,260 child model requests;
+- approximately 798.8 million child tokens;
+- 83 Sol reviewer sessions;
+- approximately 5,723.85 subscription-credit equivalents under the local
+  estimator, of which Sol reviewers represented approximately 3,466.
+
+One Goal root accounted for 144 children, 59 Sol reviewers, 4,575 child model
+requests, approximately 306 million child tokens, 13 compactions, 1,941 exec
+calls, 396 waits, and seven Goal continuations. Two other active roots accounted
+for 51 and 22 children. These are local accounting observations rather than an
+OpenAI billing statement, but child counts and routing are direct rollout
+facts.
+
+The causal conclusion is narrower than “Goals consume the quota.” Goals made
+the long-running topology durable; child fan-out, repeated reviews, expensive
+Sol routing, and accumulated context performed the billable model work. The
+Forge controls therefore preserve Goal mode while reducing the work it can
+amplify: two concurrent children, six admissions per thread, one routine
+reviewer, one hard-tail reviewer, one repair cycle, Terra for routine
+debugging/review, and a fresh thread for each Goal milestone.
+
+The first replacement Goal in this investigation used an explicit 250,000-token
+budget. It reached `budget_limited` after 252,715 accounted tokens and stopped
+automatic continuation, directly verifying the safety boundary. The user then
+cleared it and explicitly requested a 2,000,000-token budget for completion.
+
 ## Finding: social repair displaced operational recovery
 
 On September 1, 2026, a coding-agent session was corrected after invoking
@@ -128,3 +165,33 @@ and SVG content created through general file-edit tools, so a broad hook would
 produce false positives and false confidence. Static contract coverage and an
 isolated runtime case guard the shipped prompt while hosted behavior remains
 `UNVERIFIED`.
+
+## Finding: handoffs and ambiguity were able to displace Goal ownership
+
+On September 4, 2026, the user identified a remaining orchestration risk after
+the alpha.5 fan-out repair: child findings, vague prompts, and incomplete
+specifications could still be converted into stalled work or a blocked Goal.
+The requested operating model was a strict enterprise engineering contract,
+where ordinary ambiguity is resolved from repository evidence and durable
+compatibility commitments rather than handed back as workflow ceremony.
+
+The narrow owners are now split by enforceability. Base instructions normalize
+every request, preserve one acceptance-bearing workstream, resolve ordinary
+ambiguity, and treat age alone as zero migration authority. Root developer
+instructions reserve Goal state and integration for the root. A PreToolUse hook
+denies `create_goal` and `update_goal` from Forge children, making their handoffs
+evidence and recommendations rather than lifecycle control.
+
+The same change removes the `!RAW` compatibility surface. Its replacement is
+universal engineering-contract normalization, so prompt handling has one live
+path. The submit hook, prompt-contract library, raw-task writes, reads, and
+continuity reinjection are removed. Cleanup retains deletion-only handling for
+legacy `.raw.txt` runtime artifacts until their TTL or session teardown.
+
+New community captures reinforce bounded rather than maximal orchestration:
+one task source of truth, disjoint parallel write scopes, concise handoffs,
+proportional regression tests, and selective model escalation. They also report
+lost temporal position after compaction and repeated high-context waits. Forge
+responds with root-owned Goal state, compacted completed/current/next context,
+one long child wait, and no new workflow state machine. Hosted model behavior
+remains `UNVERIFIED` pending an isolated runtime evaluation.

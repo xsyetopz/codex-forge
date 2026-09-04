@@ -43,7 +43,7 @@ function extractJsonObject(text) {
 export function applyForgeCatalogPatches(catalog) {
 	if (!catalog || !Array.isArray(catalog.models))
 		throw new Error("model catalog is missing a models array");
-	// Codex 0.152.0 sends custom base instructions as an additive developer
+	// The audited Codex transport sends custom base instructions as an additive developer
 	// message in Responses Lite. Standard Responses preserves replacement.
 	const models = catalog.models.map((model) => {
 		if (!FORGE_CATALOG_SLUGS.includes(model.slug)) return model;

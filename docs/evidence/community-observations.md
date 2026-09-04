@@ -1,6 +1,6 @@
 # Community observations
 
-The 70 Markdown files under `docs/reddit/` are immutable source captures. They
+The 77 Markdown files under `docs/reddit/` are immutable source captures. They
 are user reports with uncontrolled environments, subscription accounting, model
 routing, prompt stacks, and repository difficulty. Forge uses them to find
 failure shapes and hypotheses, never as product guarantees or fixed pricing.
@@ -20,9 +20,11 @@ failure shapes and hypotheses, never as product guarantees or fixed pricing.
   provides the opposite observation: delegation overhead can outweigh useful
   work and a model may correctly choose no child.
 
-Forge consequence: concurrency is a ceiling, not a target; review and repair
-remain optional; native interruption and closure stay unobstructed; stale
-configuration is removed instead of supported indefinitely.
+Forge consequence: concurrency is a ceiling, not a target. Forge uses two
+concurrent child slots, six total admissions per thread, one routine review,
+one hard-tail review, and one repair cycle. Native interruption and closure
+stay unobstructed; stale configuration is removed instead of supported
+indefinitely.
 
 ### Bounded tasks matter more than a universal model ladder
 
@@ -40,9 +42,55 @@ outcomes conflict:
   questions whether planning plus review costs more than direct implementation.
 
 Forge consequence: route by task shape, not model folklore. Luna roles require
-an explicit local contract and decisive oracle. Ambiguous architecture,
-cross-system reasoning, debugging, and semantic review stay with Sol. The root
-may execute directly when delegation has no measured benefit.
+an explicit local contract and decisive oracle. Architecture and a demonstrated
+hard tail stay with Sol. Repository work, retrieval, debugging, and routine
+semantic review use Terra. The root may execute directly when delegation has
+no measured benefit.
+
+The expanded [Luna MAX discussion](../reddit/Luna_MAX_is_underrated.md) contains
+both strong results on bounded technical work and reports of slow execution,
+rework, weak project judgment, and cache loss after model switching. The
+[three-tier workflow](../reddit/A_3-Tier_GPT-5.6_Workflow_I’ve_Been_Using_for_a_While.md)
+maps Sol to goal ownership, Terra to difficult bounded work, and Luna to clear
+work with immediate verification, while its comments still dispute the middle
+tier and maximum-effort choices.
+
+Forge consequence: alpha.5 keeps task-shape routing rather than promoting Luna
+Max globally. Sol owns integration and material architecture, Terra handles
+repository-scale evidence and routine review, and Luna receives bounded work.
+Effort escalates after ordinary execution proves insufficient.
+
+### Handoffs need one owner and bounded writable scope
+
+- [Agent handoffs](../reddit/How_do_you_guys_handoff_work_between_Agents_.md)
+  repeatedly recommends one task source of truth, short handoffs, and separate
+  worktrees or branches for parallel mutation.
+- The same discussion warns that giant project documents, agent-to-agent chat,
+  elaborate state machines, and artificial blockers can cost more coordination
+  than the work they organize.
+- [Goal, compaction, and steering](../reddit/Goal_+_context_compaction_+_steering_instructions_make_codex_crazy.md)
+  reports that instructions may survive compaction while temporal position,
+  such as a completed review round, is lost.
+
+Forge consequence: the root remains the only Goal owner and adjudicator. Child
+handoffs are bounded evidence, parallel children receive disjoint scopes, and
+shared-worktree mutation is serialized. The compact prompt preserves completed
+work, current state, material decisions, and the next acceptance-bearing action
+instead of introducing a second project-management state machine.
+
+### V2 control remains uneven across user reports
+
+- [Sol refusing to spawn Luna subagents](../reddit/Sol_refusing_to_spawn_luna_sub_agents.md)
+  reports model-routing differences between V1 and V2.
+- [Sol orchestrator with Luna subagents](../reddit/For_those_who_don't_know_how_to_set_up_Sol_orchestrator_+_Luna_subagent.md)
+  records the V2-specific metadata-visibility workaround and comments that V2
+  still has unresolved issues.
+- [Hidden expensive child agents](../reddit/I_just_confirmed_the_real_culprit_draining_your_usage_limit__Its_Sol_generated_30_hidden,_expensive_child_and_grandchild_agents_in_a_matter_of_minutes!.md)
+  describes the same broad fan-out and quota-drain shape observed locally.
+
+Forge consequence: community workarounds do not establish a stable V2
+contract. The 0.153.1 source audit owns transport selection; Forge keeps V1,
+fresh child contexts, explicit roles, depth one, and bounded admissions.
 
 ### Higher effort is not uniformly better
 
@@ -68,6 +116,23 @@ as a deterministic Forge cost formula.
 Forge consequence: success is the narrowest user-requested outcome; the prompt
 states each boundary once; hooks do not force a review loop; validation must
 discriminate the requested behavior rather than expand by default.
+
+### Validation can become its own usage multiplier
+
+- [Test-case proliferation](../reddit/I_now_officially_hate_test_cases,_all_after_codex.md)
+  describes tests that mirror constants, tests added for the harness itself,
+  and production seams introduced mainly to make more tests possible.
+- [Serious orchestration bug](../reddit/Serious_Codex_orchestration_bug___logs_included.md)
+  reports repeated model-mediated polling of one long-running command with a
+  large accumulated context.
+- [Codex user hacks](../reddit/What_are_some_hacks_every_codex_user_should_know_!!.md)
+  emphasizes short bounded tasks, external memory, selective high-cost models,
+  and explicit handoff context.
+
+Forge consequence: tests stay proportional to the verified defect and support
+contract, with one discriminating regression preferred over coverage
+multiplication. The root uses one long wait for active children and keeps
+validation attached to the requested acceptance boundary.
 
 ### Effective model and accounting can differ from the visible selection
 

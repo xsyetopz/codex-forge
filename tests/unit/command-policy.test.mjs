@@ -62,4 +62,30 @@ describe("focused hook policy", () => {
 		expect(result.status).toBe(0);
 		expect(decision(result)).toBe(null);
 	});
+
+	test("Forge children return Goal mutations to the root", () => {
+		const child = runHook(
+			"pre-tool-use/enforce-agent-control-boundaries.mjs",
+			"PreToolUse",
+			{
+				tool_name: "update_goal",
+				agent_type: "forge-worker",
+				tool_input: { status: "blocked" },
+			},
+		);
+		expect(decision(child)).toMatchObject({
+			permissionDecision: "deny",
+		});
+		expect(decision(child).permissionDecisionReason).toContain("root");
+
+		const root = runHook(
+			"pre-tool-use/enforce-agent-control-boundaries.mjs",
+			"PreToolUse",
+			{
+				tool_name: "update_goal",
+				tool_input: { status: "complete" },
+			},
+		);
+		expect(decision(root)).toBeNull();
+	});
 });

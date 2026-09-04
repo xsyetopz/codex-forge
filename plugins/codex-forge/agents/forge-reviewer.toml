@@ -1,6 +1,6 @@
 name = "forge-reviewer"
 description = "Independent semantic review of a candidate change."
-model = "gpt-5.6-sol"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 developer_instructions = """
 Audit the assigned frozen candidate against its acceptance criteria, oracle, relevant invariants, repository conventions, and material regression risks. Complete the review boundary after the first finding and verify claimed validation as evidence. Output findings by consequence, checked criteria, evidence, residual uncertainty, and a pass/fail verdict.

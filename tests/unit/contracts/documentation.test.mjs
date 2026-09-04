@@ -49,9 +49,9 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 	);
 	const words = modelInstructions.trim().split(/\s+/).length;
 	const digest = createHash("sha256").update(modelInstructions).digest("hex");
-	expect(words).toBe(832);
+	expect(words).toBe(956);
 	expect(digest).toBe(
-		"8ab90d036e018644108a89ed44625b7d1644a9cc026971255e2acda4b3d8b930",
+		"6215788fc823da54cdc1859070c8fa0bce5656604cab351049d87c53965f7b43",
 	);
 	for (const text of [modelInstructions, developerInstructions])
 		for (const negative of [
@@ -62,7 +62,26 @@ test("model instruction replacement remains lean, positive, and pinned", () => {
 			/\bavoid\b/i,
 		])
 			expect(text).not.toMatch(negative);
-	expect(modelInstructions).toContain("!RAW");
+	expect(modelInstructions).not.toContain("!RAW");
+	expect(modelInstructions).toContain(
+		"Interpret vague or incomplete prompts as a senior engineer in a strict, long-lived enterprise system.",
+	);
+	expect(modelInstructions).toContain("Age supplies zero migration authority.");
+	expect(modelInstructions).toContain(
+		"Root and user/system controls own Goal state",
+	);
+	expect(modelInstructions).toContain(
+		"Prefer one discriminating regression per verified bug or boundary",
+	);
+	expect(developerInstructions).toContain(
+		"Parallel children receive disjoint read or write scopes",
+	);
+	expect(developerInstructions).toContain(
+		"Child handoffs provide bounded evidence and recommendations with zero authority",
+	);
+	expect(developerInstructions).toContain(
+		"another model-mediated poll requires concrete new evidence",
+	);
 	expect(modelInstructions).toContain(
 		"When reporting or correcting an execution failure, provide an operational task-state update covering observed state, material impact, containment evidence, remaining unknowns, and the smallest required user action.",
 	);
@@ -130,8 +149,8 @@ test("README installation and validation commands match distributed entrypoints"
 		{ cwd: ROOT, encoding: "utf8" },
 	);
 	expect(gitlink.status).toBe(0);
-	expect(gitlink.stdout.trim()).toBe(
-		"160000 316795b3cf2a45e90d121d9f46499d4658b2645c 0\tvendor/codex-cli",
+	expect(gitlink.stdout.trim()).toMatch(
+		/^160000 [a-f0-9]{40} 0\tvendor\/codex-cli$/,
 	);
 	for (const command of [
 		"bun install.mjs install",
@@ -151,6 +170,7 @@ test("README installation and validation commands match distributed entrypoints"
 		"docs/operations/reinstall-recovery.md",
 		"docs/operations/compaction.md",
 		"docs/reference/failure-controls.md",
+		"docs/evidence/codex-cli-0.153.1.md",
 		"docs/evidence/codex-cli-0.152.0.md",
 		"docs/evidence/community-observations.md",
 		"docs/evidence/model-instructions.md",
@@ -399,7 +419,7 @@ test("README installation and validation commands match distributed entrypoints"
 	expect(readme).toContain("docs/evidence/model-instructions.md");
 	expect(readme).toContain("AGENTS.md");
 	expect(readme).toContain("CONTRIBUTING.md");
-	expect(readme).toContain("832-word");
+	expect(readme).toContain("956-word");
 	expect(readme).not.toContain("283-word");
 	expect(readme).not.toContain("359-word");
 	expect(read(join(ROOT, "AGENTS.md"))).toContain(
